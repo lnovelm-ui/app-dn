@@ -3119,6 +3119,33 @@ async function iniciarApp() {
 // PROSPECCIÓN — render, formulario, convertir a captación
 // ════════════════════════════════════════════════════════════════════════════
 
+function renderFechaBadge(vencido, fecha) {
+  if (!fecha) return '';
+  if (vencido) return '<span style="color:#ef4444;font-weight:700">⚠️ Seguimiento vencido: '+escH(fecha)+'</span>';
+  return '<span style="color:#3b82f6">⏰ Próx. contacto: '+escH(fecha)+'</span>';
+}
+
+function renderOrigenBadge(origen) {
+  var isLaura = origen === 'Laura';
+  var bg = isLaura ? '#fdf4ff' : '#f0f9fc';
+  var color = isLaura ? '#7c3aed' : '#0f4c5c';
+  var border = isLaura ? '#e9d5ff' : '#bde0ed';
+  return '<span style="background:'+bg+';color:'+color+';border:1px solid '+border+';font-size:10px;font-weight:700;padding:2px 8px;border-radius:20px">👤 '+escH(origen)+'</span>';
+}
+
+function renderOrigenRadios(selected) {
+  return LEAD_ORIGEN.map(function(o) {
+    var isSelected = selected === o;
+    var border = isSelected ? '#0f4c5c' : 'var(--border)';
+    var bg = isSelected ? '#f0f9fc' : '#f8fafc';
+    var fw = isSelected ? '700' : '500';
+    var checked = isSelected ? 'checked' : '';
+    return '<label style="display:flex;align-items:center;gap:7px;cursor:pointer;padding:8px 16px;border-radius:8px;border:1.5px solid '+border+';background:'+bg+';font-size:13px;font-weight:'+fw+'">'
+      + '<input type="radio" name="lf_origen" value="'+o+'" '+checked+' style="accent-color:#0f4c5c"> '+o+'</label>';
+  }).join('');
+}
+
+
 let leadFormOpen = false;
 let leadEditIdx = null;
 let leadFiltEstado = '';
@@ -3167,10 +3194,10 @@ function renderProspeccion() {
 
           <div style="grid-column:span 3;font-size:10px;font-weight:800;color:var(--teal);text-transform:uppercase;letter-spacing:0.5px;padding:6px 0 2px;border-bottom:1px solid var(--border)">Origen</div>
 
-          <div style="display:flex;flex-direction:column;gap:3px">
-            <label style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;color:#c2410c">¿Quién aporta el lead? *</label>
+          <div style="display:flex;flex-direction:column;gap:3px;grid-column:span 2">
+            <label style="font-size:10px;font-weight:700;color:#c2410c;text-transform:uppercase;letter-spacing:0.5px">¿Quién aporta el lead? *</label>
             <div style="display:flex;gap:10px;margin-top:2px">
-              ${LEAD_ORIGEN.map(o => `<label style="display:flex;align-items:center;gap:7px;cursor:pointer;padding:8px 16px;border-radius:8px;border:1.5px solid ${'${(d.origen||'Laura')===o?'#0f4c5c':'var(--border)}'};background:${'${(d.origen||'Laura')===o?'#f0f9fc':'#f8fafc'}'};font-size:13px;font-weight:${'${(d.origen||'Laura')===o?700:500}'}"><input type="radio" name="lf_origen" value="${o}" ${'${(d.origen||'Laura')===o?'checked':''}'} style="accent-color:#0f4c5c"> ${o}</label>`).join('')}
+              ${renderOrigenRadios(d.origen||'Laura')}
             </div>
           </div>
           <div style="display:flex;flex-direction:column;gap:3px">
@@ -3354,9 +3381,9 @@ function renderProspeccion() {
               ${l.telefono ? `<span>📞 <a href="tel:${escH(l.telefono)}" style="color:var(--teal)">${escH(l.telefono)}</a></span>` : ''}
               ${l.nombre ? `<span>👤 ${escH(l.nombre)}</span>` : ''}
               <span style="color:${l.perfil==='Propietario directo'?'#10b981':l.perfil==='Inversor'?'#7c3aed':'#f59e0b'};font-weight:600">${escH(l.perfil||'—')}</span>
-              <span style="background:${(l.origen||'Laura')==='Laura'?'#fdf4ff':'#f0f9fc'};color:${(l.origen||'Laura')==='Laura'?'#7c3aed':'#0f4c5c'};border:1px solid ${(l.origen||'Laura')==='Laura'?'#e9d5ff':'#bde0ed'};font-size:10px;font-weight:700;padding:2px 8px;border-radius:20px">👤 ${escH(l.origen||'Laura')}</span>
+              ${renderOrigenBadge(l.origen||'Laura')}
               ${l.fecha ? `<span>📅 ${escH(l.fecha)}</span>` : ''}
-              ${vencido ? `<span style="color:#ef4444;font-weight:700">⚠️ Seguimiento vencido: ${escH(l.proximoContacto)}</span>` : (l.proximoContacto ? `<span style="color:#3b82f6">⏰ Próx. contacto: ${escH(l.proximoContacto)}</span>` : '')}
+              ${renderFechaBadge(vencido, l.proximoContacto)}
             </div>
             ${l.obs ? `<div style="font-size:12px;color:var(--muted);margin-top:4px;font-style:italic">${escH(l.obs)}</div>` : ''}
           </div>
