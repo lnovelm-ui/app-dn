@@ -531,6 +531,7 @@ const LEAD_TIPOS = ['Local comercial','Nave industrial','Oficina','Otro'];
 const LEAD_OPS = ['Venta','Alquiler','Ambos'];
 const LEAD_PERFILES = ['Propietario directo','Inversor','Empresa en dificultades','Por determinar'];
 const LEAD_ESTADOS = ['Nuevo','En seguimiento','Contactado','Descartado','Convertido a captación'];
+const LEAD_ORIGEN = ['Laura','Francisco'];
 const LEAD_EST_COLOR = {'Nuevo':'#f59e0b','En seguimiento':'#3b82f6','Contactado':'#8b5cf6','Descartado':'#94a3b8','Convertido a captación':'#10b981'};
 
 // ── UTILS ────────────────────────────────────────────────────────────────────
@@ -3167,6 +3168,12 @@ function renderProspeccion() {
           <div style="grid-column:span 3;font-size:10px;font-weight:800;color:var(--teal);text-transform:uppercase;letter-spacing:0.5px;padding:6px 0 2px;border-bottom:1px solid var(--border)">Origen</div>
 
           <div style="display:flex;flex-direction:column;gap:3px">
+            <label style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;color:#c2410c">¿Quién aporta el lead? *</label>
+            <div style="display:flex;gap:10px;margin-top:2px">
+              ${LEAD_ORIGEN.map(o => `<label style="display:flex;align-items:center;gap:7px;cursor:pointer;padding:8px 16px;border-radius:8px;border:1.5px solid ${'${(d.origen||'Laura')===o?'#0f4c5c':'var(--border)}'};background:${'${(d.origen||'Laura')===o?'#f0f9fc':'#f8fafc'}'};font-size:13px;font-weight:${'${(d.origen||'Laura')===o?700:500}'}"><input type="radio" name="lf_origen" value="${o}" ${'${(d.origen||'Laura')===o?'checked':''}'} style="accent-color:#0f4c5c"> ${o}</label>`).join('')}
+            </div>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:3px">
             <label style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px">Fuente *</label>
             <select id="lf_fuente" style="padding:8px 10px;border-radius:7px;border:1.5px solid var(--border);font-size:13px;font-family:inherit;background:#f8fafc">
               ${LEAD_FUENTES.map(f=>`<option value="${escH(f)}"${f===(d.fuente||'Milanuncios')?' selected':''}>${escH(f)}</option>`).join('')}
@@ -3347,6 +3354,7 @@ function renderProspeccion() {
               ${l.telefono ? `<span>📞 <a href="tel:${escH(l.telefono)}" style="color:var(--teal)">${escH(l.telefono)}</a></span>` : ''}
               ${l.nombre ? `<span>👤 ${escH(l.nombre)}</span>` : ''}
               <span style="color:${l.perfil==='Propietario directo'?'#10b981':l.perfil==='Inversor'?'#7c3aed':'#f59e0b'};font-weight:600">${escH(l.perfil||'—')}</span>
+              <span style="background:${(l.origen||'Laura')==='Laura'?'#fdf4ff':'#f0f9fc'};color:${(l.origen||'Laura')==='Laura'?'#7c3aed':'#0f4c5c'};border:1px solid ${(l.origen||'Laura')==='Laura'?'#e9d5ff':'#bde0ed'};font-size:10px;font-weight:700;padding:2px 8px;border-radius:20px">👤 ${escH(l.origen||'Laura')}</span>
               ${l.fecha ? `<span>📅 ${escH(l.fecha)}</span>` : ''}
               ${vencido ? `<span style="color:#ef4444;font-weight:700">⚠️ Seguimiento vencido: ${escH(l.proximoContacto)}</span>` : (l.proximoContacto ? `<span style="color:#3b82f6">⏰ Próx. contacto: ${escH(l.proximoContacto)}</span>` : '')}
             </div>
@@ -3392,6 +3400,7 @@ function guardarLead() {
   if(!DB.leads) DB.leads = [];
   const lead = {
     ref: leadEditIdx !== null ? (DB.leads[leadEditIdx].ref || genLeadRef()) : genLeadRef(),
+    origen: (document.querySelector('input[name="lf_origen"]:checked') || {value:'Laura'}).value,
     fuente: document.getElementById('lf_fuente').value,
     fecha: document.getElementById('lf_fecha').value,
     semana: document.getElementById('lf_semana').value,
