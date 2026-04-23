@@ -412,6 +412,8 @@
     <button class="tab-btn" onclick="switchTab('propietarios')" id="tab-propietarios">👤 Propietarios</button>
     <button class="tab-btn" onclick="switchTab('clientes')" id="tab-clientes">💼 Clientes</button>
     <button class="tab-btn" onclick="switchTab('resultados')" id="tab-resultados">📊 Resultados</button>
+    <div style="width:1px;background:#e2e8f0;margin:4px 2px;flex-shrink:0"></div>
+    <button class="tab-btn" onclick="switchTab('prospeccion')" id="tab-prospeccion" style="background:#fff7ed;border-color:#fed7aa;color:#c2410c;font-weight:700">🔍 Prospección</button>
   </div>
 
   <!-- ESTADO FILTER BAR - solo visible en pestañas de propiedades -->
@@ -447,7 +449,7 @@ const SUPABASE_ANON_KEY = 'sb_publishable_iODlAKMnlxyIPsFT7ibPAQ_2FJZUUX2';
 const _supa = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 // ── DATA ────────────────────────────────────────────────────────────────────
-const DEF = { naves:[], oficinas:[], locales:[], pisos:[], chalets:[], garajes:[], propietarios:[], clientes:[], municipios:{Málaga:[],Granada:[]}, zonas:{} };
+const DEF = { naves:[], oficinas:[], locales:[], pisos:[], chalets:[], garajes:[], propietarios:[], clientes:[], leads:[], municipios:{Málaga:[],Granada:[]}, zonas:{} };
 let DB = {...DEF};
 
 // Clave única del documento en Supabase (una sola fila con toda la BD)
@@ -522,6 +524,14 @@ const DOC_COLOR = {'Pendiente':'#94a3b8','Parcial':'#f59e0b','Completa':'#10b981
 const PERFILES_CLI = ['Inversor','Empresa','Particular'];
 const PRODS_CLI = ['nave','oficina','local','piso','chalet','ambos'];
 const PERF_COLOR = {Inversor:'#7c3aed',Empresa:'#0f4c5c',Particular:'#64748b'};
+
+// ── PROSPECCIÓN CONSTANTS ────────────────────────────────────────────────────
+const LEAD_FUENTES = ['Milanuncios','Wallapop','Locales.es','LoopNet','Fotocasa','Habitaclia','Yaencontre','Facebook Marketplace','Pisos.com','Indomio','BORME','Alerta Google','Catastro','Red / Contacto','Otro'];
+const LEAD_TIPOS = ['Local comercial','Nave industrial','Oficina','Otro'];
+const LEAD_OPS = ['Venta','Alquiler','Ambos'];
+const LEAD_PERFILES = ['Propietario directo','Inversor','Empresa en dificultades','Por determinar'];
+const LEAD_ESTADOS = ['Nuevo','En seguimiento','Contactado','Descartado','Convertido a captación'];
+const LEAD_EST_COLOR = {'Nuevo':'#f59e0b','En seguimiento':'#3b82f6','Contactado':'#8b5cf6','Descartado':'#94a3b8','Convertido a captación':'#10b981'};
 
 // ── UTILS ────────────────────────────────────────────────────────────────────
 function eur(v) { return v ? Number(v).toLocaleString('es-ES',{style:'currency',currency:'EUR',maximumFractionDigits:0}) : '—'; }
@@ -2956,6 +2966,7 @@ function render() {
   else if(currentTab==='propietarios') renderPropietarios();
   else if(currentTab==='clientes') renderClientes();
   else if(currentTab==='resultados') renderResultados();
+  else if(currentTab==='prospeccion') renderProspeccion();
 }
 
 // ── MIGRACIÓN ESTADO PROPIEDADES PUBLICADAS EN IDEALISTA ─────────────────────
@@ -3101,6 +3112,372 @@ async function iniciarApp() {
   }
   // Si no hay sesión, la pantalla de login ya está visible por defecto
 })();
+
+
+// ════════════════════════════════════════════════════════════════════════════
+// PROSPECCIÓN — render, formulario, convertir a captación
+// ════════════════════════════════════════════════════════════════════════════
+
+let leadFormOpen = false;
+let leadEditIdx = null;
+let leadFiltEstado = '';
+let leadFiltFuente = '';
+let leadFiltTipo = '';
+
+function genLeadRef() {
+  const leads = DB.leads || [];
+  const nums = leads.map(l => parseInt((l.ref||'').replace('LEAD-',''))).filter(n=>!isNaN(n));
+  const n = nums.length ? Math.max(...nums)+1 : 1;
+  return 'LEAD-' + String(n).padStart(3,'0');
+}
+
+function renderProspeccion() {
+  const area = document.getElementById('content');
+  const leads = DB.leads || [];
+
+  // Filtros activos
+  let lista = leads.filter(l => {
+    if(leadFiltEstado && l.estado !== leadFiltEstado) return false;
+    if(leadFiltFuente && l.fuente !== leadFiltFuente) return false;
+    if(leadFiltTipo && l.tipoActivo !== leadFiltTipo) return false;
+    return true;
+  });
+
+  // Stats
+  const total = leads.length;
+  const nuevos = leads.filter(l=>l.estado==='Nuevo').length;
+  const seguimiento = leads.filter(l=>l.estado==='En seguimiento').length;
+  const convertidos = leads.filter(l=>l.estado==='Convertido a captación').length;
+
+  if(leadFormOpen) {
+    const d = leadEditIdx !== null ? (DB.leads[leadEditIdx] || {}) : {};
+    area.innerHTML = `
+    <div style="max-width:860px;margin:0 auto;padding:20px 16px">
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:20px">
+        <span onclick="cerrarLeadForm()" style="cursor:pointer;color:var(--teal);font-weight:700;display:flex;align-items:center;gap:4px;padding:4px 10px;background:#f0f9fc;border:1px solid #bde0ed;border-radius:20px;font-size:13px">🏠 Inicio</span>
+        <span style="color:#94a3b8">›</span>
+        <span onclick="doSwitchTab('prospeccion')" style="cursor:pointer;color:var(--teal);font-weight:700;padding:4px 10px;background:#fff7ed;border:1px solid #fed7aa;border-radius:20px;font-size:13px">🔍 Prospección</span>
+        <span style="color:#94a3b8">›</span>
+        <span style="color:#c2410c;font-weight:700;font-size:13px">${leadEditIdx!==null ? 'Editar lead' : 'Nuevo lead'}</span>
+      </div>
+      <div style="background:#fff;border-radius:14px;border:1px solid var(--border);padding:28px 24px;box-shadow:var(--shadow)">
+        <div style="font-size:13px;font-weight:800;color:var(--teal);margin-bottom:20px;letter-spacing:0.2px">${leadEditIdx!==null ? '✏️ Editar lead · '+escH(d.ref||'') : '➕ Nuevo lead de prospección'}</div>
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px">
+
+          <div style="grid-column:span 3;font-size:10px;font-weight:800;color:var(--teal);text-transform:uppercase;letter-spacing:0.5px;padding:6px 0 2px;border-bottom:1px solid var(--border)">Origen</div>
+
+          <div style="display:flex;flex-direction:column;gap:3px">
+            <label style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px">Fuente *</label>
+            <select id="lf_fuente" style="padding:8px 10px;border-radius:7px;border:1.5px solid var(--border);font-size:13px;font-family:inherit;background:#f8fafc">
+              ${LEAD_FUENTES.map(f=>`<option value="${escH(f)}"${f===(d.fuente||'Milanuncios')?' selected':''}>${escH(f)}</option>`).join('')}
+            </select>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:3px">
+            <label style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px">Fecha detección</label>
+            <input type="date" id="lf_fecha" value="${escH(d.fecha || new Date().toISOString().slice(0,10))}" style="padding:8px 10px;border-radius:7px;border:1.5px solid var(--border);font-size:13px;font-family:inherit">
+          </div>
+          <div style="display:flex;flex-direction:column;gap:3px">
+            <label style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px">Semana</label>
+            <input type="text" id="lf_semana" value="${escH(d.semana||getWeekLabel())}" placeholder="Ej: 17/04/2026" style="padding:8px 10px;border-radius:7px;border:1.5px solid var(--border);font-size:13px;font-family:inherit">
+          </div>
+
+          <div style="grid-column:span 3;font-size:10px;font-weight:800;color:var(--teal);text-transform:uppercase;letter-spacing:0.5px;padding:6px 0 2px;border-bottom:1px solid var(--border);margin-top:8px">Activo</div>
+
+          <div style="display:flex;flex-direction:column;gap:3px">
+            <label style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px">Tipo activo *</label>
+            <select id="lf_tipoActivo" style="padding:8px 10px;border-radius:7px;border:1.5px solid var(--border);font-size:13px;font-family:inherit;background:#f8fafc">
+              ${LEAD_TIPOS.map(t=>`<option value="${escH(t)}"${t===(d.tipoActivo||'Local comercial')?' selected':''}>${escH(t)}</option>`).join('')}
+            </select>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:3px">
+            <label style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px">Operación</label>
+            <select id="lf_operacion" style="padding:8px 10px;border-radius:7px;border:1.5px solid var(--border);font-size:13px;font-family:inherit;background:#f8fafc">
+              ${LEAD_OPS.map(o=>`<option value="${escH(o)}"${o===(d.operacion||'Venta')?' selected':''}>${escH(o)}</option>`).join('')}
+            </select>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:3px">
+            <label style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px">Perfil</label>
+            <select id="lf_perfil" style="padding:8px 10px;border-radius:7px;border:1.5px solid var(--border);font-size:13px;font-family:inherit;background:#f8fafc">
+              ${LEAD_PERFILES.map(p=>`<option value="${escH(p)}"${p===(d.perfil||'Propietario directo')?' selected':''}>${escH(p)}</option>`).join('')}
+            </select>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:3px">
+            <label style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px">Municipio / Zona</label>
+            <input type="text" id="lf_zona" value="${escH(d.zona||'')}" placeholder="Ej: Vélez-Málaga, Pol. Ind. El Polvero" style="padding:8px 10px;border-radius:7px;border:1.5px solid var(--border);font-size:13px;font-family:inherit">
+          </div>
+          <div style="display:flex;flex-direction:column;gap:3px">
+            <label style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px">Superficie (m²)</label>
+            <input type="number" id="lf_superficie" value="${escH(d.superficie||'')}" placeholder="m²" style="padding:8px 10px;border-radius:7px;border:1.5px solid var(--border);font-size:13px;font-family:inherit">
+          </div>
+          <div style="display:flex;flex-direction:column;gap:3px">
+            <label style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px">Precio (€)</label>
+            <input type="text" id="lf_precio" value="${escH(d.precio||'')}" placeholder="Ej: 180.000 / 1.200/mes" style="padding:8px 10px;border-radius:7px;border:1.5px solid var(--border);font-size:13px;font-family:inherit">
+          </div>
+
+          <div style="grid-column:span 3;font-size:10px;font-weight:800;color:var(--teal);text-transform:uppercase;letter-spacing:0.5px;padding:6px 0 2px;border-bottom:1px solid var(--border);margin-top:8px">Contacto</div>
+
+          <div style="display:flex;flex-direction:column;gap:3px">
+            <label style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px">Nombre / Empresa</label>
+            <input type="text" id="lf_nombre" value="${escH(d.nombre||'')}" placeholder="Propietario o razón social" style="padding:8px 10px;border-radius:7px;border:1.5px solid var(--border);font-size:13px;font-family:inherit">
+          </div>
+          <div style="display:flex;flex-direction:column;gap:3px">
+            <label style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px">Teléfono</label>
+            <input type="tel" id="lf_telefono" value="${escH(d.telefono||'')}" placeholder="6XX XXX XXX" style="padding:8px 10px;border-radius:7px;border:1.5px solid var(--border);font-size:13px;font-family:inherit">
+          </div>
+          <div style="display:flex;flex-direction:column;gap:3px">
+            <label style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px">Email</label>
+            <input type="email" id="lf_email" value="${escH(d.email||'')}" placeholder="email@ejemplo.com" style="padding:8px 10px;border-radius:7px;border:1.5px solid var(--border);font-size:13px;font-family:inherit">
+          </div>
+
+          <div style="grid-column:span 3;font-size:10px;font-weight:800;color:var(--teal);text-transform:uppercase;letter-spacing:0.5px;padding:6px 0 2px;border-bottom:1px solid var(--border);margin-top:8px">Estado y seguimiento</div>
+
+          <div style="display:flex;flex-direction:column;gap:3px">
+            <label style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px">Estado lead</label>
+            <select id="lf_estado" style="padding:8px 10px;border-radius:7px;border:1.5px solid var(--border);font-size:13px;font-family:inherit;background:#f8fafc">
+              ${LEAD_ESTADOS.map(e=>`<option value="${escH(e)}"${e===(d.estado||'Nuevo')?' selected':''}>${escH(e)}</option>`).join('')}
+            </select>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:3px">
+            <label style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px">Enlace al anuncio</label>
+            <input type="url" id="lf_enlace" value="${escH(d.enlace||'')}" placeholder="https://..." style="padding:8px 10px;border-radius:7px;border:1.5px solid var(--border);font-size:13px;font-family:inherit">
+          </div>
+          <div style="display:flex;flex-direction:column;gap:3px">
+            <label style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px">Fecha próximo contacto</label>
+            <input type="date" id="lf_proximoContacto" value="${escH(d.proximoContacto||'')}" style="padding:8px 10px;border-radius:7px;border:1.5px solid var(--border);font-size:13px;font-family:inherit">
+          </div>
+
+          <div style="grid-column:span 3;display:flex;flex-direction:column;gap:3px">
+            <label style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px">Observaciones</label>
+            <textarea id="lf_obs" style="padding:8px 10px;border-radius:7px;border:1.5px solid var(--border);font-size:13px;font-family:inherit;min-height:80px;resize:vertical">${escH(d.obs||'')}</textarea>
+          </div>
+
+        </div>
+        <div style="display:flex;gap:10px;margin-top:20px;justify-content:flex-end">
+          <button onclick="cerrarLeadForm()" style="padding:9px 20px;border-radius:8px;border:1.5px solid var(--border);background:#f8fafc;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;color:var(--muted)">Cancelar</button>
+          <button onclick="guardarLead()" style="padding:9px 24px;border-radius:8px;border:none;background:var(--teal);color:#fff;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit">💾 Guardar lead</button>
+        </div>
+      </div>
+    </div>`;
+    return;
+  }
+
+  // ── VISTA LISTA ──────────────────────────────────────────────────────────
+  area.innerHTML = `
+  <div style="max-width:1100px;margin:0 auto;padding:20px 16px">
+
+    <!-- Breadcrumb -->
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:20px">
+      <span onclick="doSwitchTab('__home__')" style="cursor:pointer;color:var(--teal);font-weight:700;display:flex;align-items:center;gap:4px;padding:4px 10px;background:#f0f9fc;border:1px solid #bde0ed;border-radius:20px;font-size:13px">🏠 Inicio</span>
+      <span style="color:#94a3b8">›</span>
+      <span style="color:#c2410c;font-weight:700;font-size:13px">🔍 Prospección · ${total} leads</span>
+    </div>
+
+    <!-- Stats -->
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px">
+      <div style="background:#fff;border-radius:12px;border:1px solid var(--border);padding:16px 18px;box-shadow:var(--shadow)">
+        <div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px">Total leads</div>
+        <div style="font-size:28px;font-weight:800;color:var(--teal)">${total}</div>
+      </div>
+      <div style="background:#fff;border-radius:12px;border:1px solid var(--border);padding:16px 18px;box-shadow:var(--shadow)">
+        <div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px">Nuevos</div>
+        <div style="font-size:28px;font-weight:800;color:#f59e0b">${nuevos}</div>
+      </div>
+      <div style="background:#fff;border-radius:12px;border:1px solid var(--border);padding:16px 18px;box-shadow:var(--shadow)">
+        <div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px">En seguimiento</div>
+        <div style="font-size:28px;font-weight:800;color:#3b82f6">${seguimiento}</div>
+      </div>
+      <div style="background:#fff;border-radius:12px;border:1px solid var(--border);padding:16px 18px;box-shadow:var(--shadow)">
+        <div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px">Convertidos</div>
+        <div style="font-size:28px;font-weight:800;color:#10b981">${convertidos}</div>
+      </div>
+    </div>
+
+    <!-- Toolbar -->
+    <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:16px">
+      <button onclick="abrirNuevoLead()" style="padding:9px 18px;border-radius:8px;border:none;background:var(--teal);color:#fff;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;display:flex;align-items:center;gap:6px">➕ Nuevo lead</button>
+      <button onclick="exportarLeadsCSV()" style="padding:9px 16px;border-radius:8px;border:1.5px solid var(--border);background:#fff;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;color:var(--teal)">⬇ Exportar CSV</button>
+      <div style="flex:1;min-width:160px">
+        <select onchange="leadFiltEstado=this.value;renderProspeccion()" style="width:100%;padding:8px 10px;border-radius:8px;border:1.5px solid var(--border);font-size:13px;font-family:inherit;background:#f8fafc">
+          <option value="">Todos los estados</option>
+          ${LEAD_ESTADOS.map(e=>`<option value="${escH(e)}"${e===leadFiltEstado?' selected':''}>${escH(e)}</option>`).join('')}
+        </select>
+      </div>
+      <div style="flex:1;min-width:160px">
+        <select onchange="leadFiltFuente=this.value;renderProspeccion()" style="width:100%;padding:8px 10px;border-radius:8px;border:1.5px solid var(--border);font-size:13px;font-family:inherit;background:#f8fafc">
+          <option value="">Todas las fuentes</option>
+          ${LEAD_FUENTES.map(f=>`<option value="${escH(f)}"${f===leadFiltFuente?' selected':''}>${escH(f)}</option>`).join('')}
+        </select>
+      </div>
+      <div style="flex:1;min-width:160px">
+        <select onchange="leadFiltTipo=this.value;renderProspeccion()" style="width:100%;padding:8px 10px;border-radius:8px;border:1.5px solid var(--border);font-size:13px;font-family:inherit;background:#f8fafc">
+          <option value="">Todos los tipos</option>
+          ${LEAD_TIPOS.map(t=>`<option value="${escH(t)}"${t===leadFiltTipo?' selected':''}>${escH(t)}</option>`).join('')}
+        </select>
+      </div>
+    </div>
+
+    <!-- Lista de leads -->
+    ${lista.length === 0 ? `
+    <div style="text-align:center;padding:60px 20px;color:var(--muted)">
+      <div style="font-size:40px;margin-bottom:12px">🔍</div>
+      <div style="font-size:16px;font-weight:700;margin-bottom:6px">Sin leads todavía</div>
+      <div style="font-size:13px">Pulsa "Nuevo lead" para añadir el primer resultado de prospección.</div>
+    </div>` : `
+    <div style="display:flex;flex-direction:column;gap:8px">
+      ${lista.map((l,i) => {
+        const realIdx = (DB.leads||[]).indexOf(l);
+        const estColor = LEAD_EST_COLOR[l.estado] || '#94a3b8';
+        const hoy = new Date().toISOString().slice(0,10);
+        const vencido = l.proximoContacto && l.proximoContacto < hoy && l.estado !== 'Descartado' && l.estado !== 'Convertido a captación';
+        return `<div style="background:#fff;border-radius:12px;border:1px solid ${vencido?'#fca5a5':estColor+'44'};padding:16px 20px;box-shadow:var(--shadow);display:grid;grid-template-columns:auto 1fr auto;gap:16px;align-items:center">
+          <div style="display:flex;flex-direction:column;align-items:center;gap:4px">
+            <span style="background:${estColor};color:#fff;font-size:10px;font-weight:700;padding:3px 8px;border-radius:20px;white-space:nowrap">${escH(l.estado||'Nuevo')}</span>
+            <span style="font-size:10px;color:var(--muted);font-family:monospace">${escH(l.ref||'')}</span>
+          </div>
+          <div>
+            <div style="font-size:14px;font-weight:700;color:var(--ink);margin-bottom:3px">
+              ${escH(l.tipoActivo||'—')} · ${escH(l.zona||'Sin zona')}
+              ${l.enlace ? `<a href="${escH(l.enlace)}" target="_blank" style="color:var(--teal);font-size:12px;margin-left:8px;text-decoration:none">🔗 Ver anuncio</a>` : ''}
+            </div>
+            <div style="font-size:12px;color:var(--muted);display:flex;gap:12px;flex-wrap:wrap">
+              <span>📍 ${escH(l.fuente||'—')}</span>
+              <span>📋 ${escH(l.operacion||'—')}</span>
+              ${l.superficie ? `<span>📐 ${escH(l.superficie)} m²</span>` : ''}
+              ${l.precio ? `<span>💶 ${escH(l.precio)}</span>` : ''}
+              ${l.telefono ? `<span>📞 <a href="tel:${escH(l.telefono)}" style="color:var(--teal)">${escH(l.telefono)}</a></span>` : ''}
+              ${l.nombre ? `<span>👤 ${escH(l.nombre)}</span>` : ''}
+              <span style="color:${l.perfil==='Propietario directo'?'#10b981':l.perfil==='Inversor'?'#7c3aed':'#f59e0b'};font-weight:600">${escH(l.perfil||'—')}</span>
+              ${l.fecha ? `<span>📅 ${escH(l.fecha)}</span>` : ''}
+              ${vencido ? `<span style="color:#ef4444;font-weight:700">⚠️ Seguimiento vencido: ${escH(l.proximoContacto)}</span>` : (l.proximoContacto ? `<span style="color:#3b82f6">⏰ Próx. contacto: ${escH(l.proximoContacto)}</span>` : '')}
+            </div>
+            ${l.obs ? `<div style="font-size:12px;color:var(--muted);margin-top:4px;font-style:italic">${escH(l.obs)}</div>` : ''}
+          </div>
+          <div style="display:flex;flex-direction:column;gap:6px;align-items:flex-end">
+            <button onclick="editarLead(${realIdx})" style="padding:6px 12px;border-radius:7px;border:1.5px solid var(--border);background:#f8fafc;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;color:var(--teal)">✏️ Editar</button>
+            ${l.estado !== 'Convertido a captación' && l.estado !== 'Descartado' ? `<button onclick="convertirACaptacion(${realIdx})" style="padding:6px 12px;border-radius:7px;border:none;background:#10b981;color:#fff;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit">✅ Captar</button>` : ''}
+            <button onclick="eliminarLead(${realIdx})" style="padding:6px 12px;border-radius:7px;border:1.5px solid #fca5a5;background:#fff;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;color:#ef4444">🗑</button>
+          </div>
+        </div>`;
+      }).join('')}
+    </div>`}
+  </div>`;
+}
+
+function getWeekLabel() {
+  const d = new Date();
+  const mon = new Date(d);
+  mon.setDate(d.getDate() - d.getDay() + 1);
+  return mon.toLocaleDateString('es-ES',{day:'2-digit',month:'2-digit',year:'numeric'});
+}
+
+function abrirNuevoLead() {
+  leadFormOpen = true;
+  leadEditIdx = null;
+  renderProspeccion();
+}
+
+function editarLead(idx) {
+  leadFormOpen = true;
+  leadEditIdx = idx;
+  renderProspeccion();
+}
+
+function cerrarLeadForm() {
+  leadFormOpen = false;
+  leadEditIdx = null;
+  renderProspeccion();
+}
+
+function guardarLead() {
+  if(!DB.leads) DB.leads = [];
+  const lead = {
+    ref: leadEditIdx !== null ? (DB.leads[leadEditIdx].ref || genLeadRef()) : genLeadRef(),
+    fuente: document.getElementById('lf_fuente').value,
+    fecha: document.getElementById('lf_fecha').value,
+    semana: document.getElementById('lf_semana').value,
+    tipoActivo: document.getElementById('lf_tipoActivo').value,
+    operacion: document.getElementById('lf_operacion').value,
+    perfil: document.getElementById('lf_perfil').value,
+    zona: document.getElementById('lf_zona').value,
+    superficie: document.getElementById('lf_superficie').value,
+    precio: document.getElementById('lf_precio').value,
+    nombre: document.getElementById('lf_nombre').value,
+    telefono: document.getElementById('lf_telefono').value,
+    email: document.getElementById('lf_email').value,
+    estado: document.getElementById('lf_estado').value,
+    enlace: document.getElementById('lf_enlace').value,
+    proximoContacto: document.getElementById('lf_proximoContacto').value,
+    obs: document.getElementById('lf_obs').value,
+    updatedAt: new Date().toISOString()
+  };
+  if(leadEditIdx !== null) {
+    DB.leads[leadEditIdx] = lead;
+  } else {
+    lead.createdAt = new Date().toISOString();
+    DB.leads.unshift(lead);
+  }
+  saveDB();
+  leadFormOpen = false;
+  leadEditIdx = null;
+  renderProspeccion();
+}
+
+function eliminarLead(idx) {
+  if(!confirm('¿Eliminar este lead?')) return;
+  DB.leads.splice(idx, 1);
+  saveDB();
+  renderProspeccion();
+}
+
+function convertirACaptacion(idx) {
+  const l = DB.leads[idx];
+  if(!l) return;
+  // Marcar como convertido
+  DB.leads[idx].estado = 'Convertido a captación';
+  DB.leads[idx].convertidoAt = new Date().toISOString();
+  saveDB();
+  // Determinar tipo destino
+  const tipoMap = {'Local comercial':'locales','Nave industrial':'naves','Oficina':'oficinas'};
+  const tipo = tipoMap[l.tipoActivo] || 'locales';
+  // Prefill datos en nuevo activo
+  const nuevo = {
+    ref: genRef(tipo),
+    municipio: l.zona || '',
+    provincia: 'Málaga',
+    tipoOperacion: l.operacion || 'Venta',
+    precioVenta: l.operacion === 'Venta' ? (l.precio||'').replace(/[^\d]/g,'') : '',
+    precioAlquiler: l.operacion === 'Alquiler' ? (l.precio||'').replace(/[^\d]/g,'') : '',
+    superficie: l.superficie || '',
+    estadoContacto: 'Primer contacto',
+    estadoComercial: 'Captación',
+    documentacion: 'Pendiente',
+    exclusiva: 'No',
+    observaciones: `Lead procedente de ${l.fuente||'prospección'} (${l.ref}). ${l.obs||''}`.trim(),
+    enlaceWeb: l.enlace || '',
+    fechaCaptacion: new Date().toISOString().slice(0,10),
+    createdAt: new Date().toISOString()
+  };
+  if(!DB[tipo]) DB[tipo] = [];
+  DB[tipo].unshift(nuevo);
+  saveDB();
+  alert(`✅ Lead convertido. Se ha creado el activo ${nuevo.ref} en ${tipo.charAt(0).toUpperCase()+tipo.slice(1)}.`);
+  doSwitchTab(tipo);
+}
+
+function exportarLeadsCSV() {
+  const leads = DB.leads || [];
+  if(!leads.length) { alert('No hay leads para exportar.'); return; }
+  const cols = ['ref','fecha','semana','fuente','tipoActivo','operacion','perfil','zona','superficie','precio','nombre','telefono','email','estado','enlace','proximoContacto','obs'];
+  const headers = ['Ref','Fecha','Semana','Fuente','Tipo activo','Operación','Perfil','Zona','Superficie','Precio','Nombre/Empresa','Teléfono','Email','Estado','Enlace','Próx. contacto','Observaciones'];
+  const rows = leads.map(l => cols.map(c => '"'+(String(l[c]||'').replace(/"/g,'""'))+'"').join(','));
+  const csv = [headers.join(','), ...rows].join('\n');
+  const blob = new Blob(['\uFEFF'+csv], {type:'text/csv;charset=utf-8'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = 'leads_prospeccion_'+new Date().toISOString().slice(0,10)+'.csv';
+  document.body.appendChild(a); a.click();
+  setTimeout(()=>{document.body.removeChild(a);URL.revokeObjectURL(url);},1000);
+}
 </script>
 </div><!-- /appShell -->
 </body>
