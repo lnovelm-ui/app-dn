@@ -527,10 +527,10 @@ const PRODS_CLI = ['nave','oficina','local','piso','chalet','ambos'];
 const PERF_COLOR = {Inversor:'#7c3aed',Empresa:'#0f4c5c',Particular:'#64748b'};
 
 // ── PROSPECCIÓN CONSTANTS ────────────────────────────────────────────────────
-const LEAD_FUENTES = ['Idealista','Fotocasa','Milanuncios','Wallapop','Facebook Marketplace','Otras webs','Otros'];
+const LEAD_FUENTES = ['Milanuncios','Wallapop','Locales.es','LoopNet','Fotocasa','Habitaclia','Yaencontre','Facebook Marketplace','Pisos.com','Indomio','BORME','Alerta Google','Catastro','Red / Contacto','Otro'];
 const LEAD_TIPOS = ['Local comercial','Nave industrial','Oficina','Otro'];
 const LEAD_OPS = ['Venta','Alquiler','Ambos'];
-const LEAD_PERFILES = ['Particular','Propietario directo','Profesional','Inversor','Empresa en dificultades','Por determinar'];
+const LEAD_PERFILES = ['Propietario directo','Inversor','Empresa en dificultades','Por determinar'];
 const LEAD_ESTADOS = ['Nuevo','En seguimiento','Contactado','Descartado','Convertido a captación'];
 const LEAD_ORIGEN = ['Laura','Francisco'];
 const LEAD_EST_COLOR = {'Nuevo':'#f59e0b','En seguimiento':'#3b82f6','Contactado':'#8b5cf6','Descartado':'#94a3b8','Convertido a captación':'#10b981'};
@@ -3154,6 +3154,8 @@ let leadFiltFuente = '';
 let leadFiltTipo = '';
 let leadFiltPerfil = '';
 let leadSubTab = 'leads';
+let leadFiltOperacion = '';
+let leadSortField = 'fechaActualizacion'; // default: más reciente primero
 
 function genLeadRef() {
   const leads = DB.leads || [];
@@ -3173,8 +3175,22 @@ function renderProspeccion() {
     if(leadFiltTipo && l.tipoActivo !== leadFiltTipo) return false;
     if(leadFiltPerfil === 'Particular' && !(l.perfil==='Particular' || l.perfil==='Propietario directo')) return false;
     if(leadFiltPerfil === 'Profesional' && (l.perfil==='Particular' || l.perfil==='Propietario directo' || !l.perfil)) return false;
+    if(leadFiltOperacion && l.operacion !== leadFiltOperacion) return false;
     return true;
   });
+
+  // Sort: fechaActualizacion (text) → parse "hace X días/meses" → numeric; fallback by createdAt
+  function parseFechaAct(txt) {
+    if (!txt) return 99999;
+    const t = txt.toLowerCase();
+    const h = t.match(/hace\s+(\d+)\s+hora/);   if(h) return parseFloat(h[1]) / 24;
+    const d = t.match(/hace\s+(\d+)\s+d/);       if(d) return parseFloat(d[1]);
+    const m = t.match(/hace\s+m[aá]s\s+de\s+(\d+)\s+mes/); if(m) return parseFloat(m[1]) * 30;
+    if(t.includes('un día') || t.includes('un dia')) return 1;
+    if(t.includes('un mes')) return 30;
+    return 9999;
+  }
+  lista.sort((a, b) => parseFechaAct(a.fechaActualizacion) - parseFechaAct(b.fechaActualizacion));
 
   // Stats
   const total = leads.length;
@@ -3208,7 +3224,7 @@ function renderProspeccion() {
           <div style="display:flex;flex-direction:column;gap:3px">
             <label style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px">Fuente *</label>
             <select id="lf_fuente" style="padding:8px 10px;border-radius:7px;border:1.5px solid var(--border);font-size:13px;font-family:inherit;background:#f8fafc">
-              ${LEAD_FUENTES.map(f=>`<option value="${escH(f)}"${f===(d.fuente||'Idealista')?' selected':''}>${escH(f)}</option>`).join('')}
+              ${LEAD_FUENTES.map(f=>`<option value="${escH(f)}"${f===(d.fuente||'Milanuncios')?' selected':''}>${escH(f)}</option>`).join('')}
             </select>
           </div>
           <div style="display:flex;flex-direction:column;gap:3px">
@@ -3237,7 +3253,7 @@ function renderProspeccion() {
           <div style="display:flex;flex-direction:column;gap:3px">
             <label style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px">Perfil</label>
             <select id="lf_perfil" style="padding:8px 10px;border-radius:7px;border:1.5px solid var(--border);font-size:13px;font-family:inherit;background:#f8fafc">
-              ${LEAD_PERFILES.map(p=>`<option value="${escH(p)}"${p===(d.perfil||'Por determinar')?' selected':''}>${escH(p)}</option>`).join('')}
+              ${LEAD_PERFILES.map(p=>`<option value="${escH(p)}"${p===(d.perfil||'Propietario directo')?' selected':''}>${escH(p)}</option>`).join('')}
             </select>
           </div>
           <div style="display:flex;flex-direction:column;gap:3px">
@@ -3301,12 +3317,6 @@ function renderProspeccion() {
           <div style="display:flex;flex-direction:column;gap:3px">
             <label style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px">Días sin actualizar</label>
             <input type="number" id="lf_diasSinActualizar" value="${escH(d.diasSinActualizar||'')}" placeholder="0" style="padding:8px 10px;border-radius:7px;border:1.5px solid var(--border);font-size:13px;font-family:inherit">
-          </div>
-          <div style="grid-column:span 2;display:flex;flex-direction:column;gap:3px">
-            <label style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px">Última actualización anuncio</label>
-            <div style="padding:8px 12px;border-radius:7px;border:1.5px solid var(--border);font-size:13px;background:#f8fafc;color:${d.fechaActualizacion?'#374151':'#94a3b8'};font-style:${d.fechaActualizacion?'normal':'italic'}">
-              ${d.fechaActualizacion || 'Sin datos (viene del portal al importar el Excel)'}
-            </div>
           </div>
           <div style="grid-column:span 3;display:flex;flex-direction:column;gap:3px">
             <label style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px">Fecha actualización anuncio</label>
@@ -3402,6 +3412,14 @@ function renderProspeccion() {
           <option value="Profesional"${leadFiltPerfil==='Profesional'?' selected':''}>🏢 Solo profesionales</option>
         </select>
       </div>
+      <div style="flex:1;min-width:160px">
+        <select onchange="leadFiltOperacion=this.value;renderProspeccion()" style="width:100%;padding:8px 10px;border-radius:8px;border:1.5px solid var(--border);font-size:13px;font-family:inherit;background:#f8fafc">
+          <option value="">Venta y alquiler</option>
+          <option value="Venta"${leadFiltOperacion==='Venta'?' selected':''}>💶 Solo venta</option>
+          <option value="Alquiler"${leadFiltOperacion==='Alquiler'?' selected':''}>🔑 Solo alquiler</option>
+          <option value="Ambos"${leadFiltOperacion==='Ambos'?' selected':''}>↔ Ambos</option>
+        </select>
+      </div>
     </div>
 
     <!-- Lista de leads -->
@@ -3417,7 +3435,7 @@ function renderProspeccion() {
         const estColor = LEAD_EST_COLOR[l.estado] || '#94a3b8';
         const hoy = new Date().toISOString().slice(0,10);
         const vencido = l.proximoContacto && l.proximoContacto < hoy && l.estado !== 'Descartado' && l.estado !== 'Convertido a captación';
-        return `<div style="background:#fff;border-radius:12px;border:1px solid ${vencido?'#fca5a5':estColor+'44'};padding:16px 20px;box-shadow:var(--shadow);display:grid;grid-template-columns:auto 1fr auto;gap:16px;align-items:center">
+        return `<div style="background:#fff;border-radius:12px;border:1px solid ${vencido?'#fca5a5':estColor+'44'};padding:16px 20px;box-shadow:var(--shadow);display:grid;grid-template-columns:auto 1fr auto;gap:16px;align-items:center;cursor:pointer;transition:box-shadow 0.15s" onclick="verDetalleLead(${realIdx},event)" onmouseover="this.style.boxShadow='0 4px 18px rgba(0,0,0,0.10)'" onmouseout="this.style.boxShadow='var(--shadow)'">
           <div style="display:flex;flex-direction:column;align-items:center;gap:4px">
             <span style="background:${estColor};color:#fff;font-size:10px;font-weight:700;padding:3px 8px;border-radius:20px;white-space:nowrap">${escH(l.estado||'Nuevo')}</span>
             <span style="font-size:10px;color:var(--muted);font-family:monospace">${escH(l.ref||'')}</span>
@@ -3482,6 +3500,94 @@ function abrirNuevoLead() {
   leadFormOpen = true;
   leadEditIdx = null;
   renderProspeccion();
+}
+
+function verDetalleLead(idx, event) {
+  // Don't open detail if clicking a button/link inside the card
+  if(event && (event.target.tagName === 'BUTTON' || event.target.tagName === 'A' || event.target.closest('button') || event.target.closest('a'))) return;
+  const l = DB.leads[idx];
+  if(!l) return;
+  const area = document.getElementById('content');
+  const estColor = LEAD_EST_COLOR[l.estado] || '#94a3b8';
+  const hoy = new Date().toISOString().slice(0,10);
+  const vencido = l.proximoContacto && l.proximoContacto < hoy && l.estado !== 'Descartado' && l.estado !== 'Convertido a captación';
+
+  area.innerHTML = `
+  <div style="max-width:860px;margin:0 auto;padding:20px 16px">
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:20px">
+      <span onclick="doSwitchTab('__home__')" style="cursor:pointer;color:var(--teal);font-weight:700;padding:4px 10px;background:#f0f9fc;border:1px solid #bde0ed;border-radius:20px;font-size:13px">🏠 Inicio</span>
+      <span style="color:#94a3b8">›</span>
+      <span onclick="doSwitchTab('prospeccion')" style="cursor:pointer;color:var(--teal);font-weight:700;padding:4px 10px;background:#fff7ed;border:1px solid #fed7aa;border-radius:20px;font-size:13px">🔍 Prospección</span>
+      <span style="color:#94a3b8">›</span>
+      <span style="color:#c2410c;font-weight:700;font-size:13px">${escH(l.ref||'')}</span>
+    </div>
+
+    <div style="background:#fff;border-radius:14px;border:1px solid var(--border);padding:28px 24px;box-shadow:var(--shadow)">
+
+      <!-- Header -->
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:20px;flex-wrap:wrap;gap:12px">
+        <div>
+          <div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:6px">${escH(l.ref||'')}</div>
+          <div style="font-size:22px;font-weight:800;color:var(--teal);margin-bottom:6px">${escH(l.tipoActivo||'—')} · ${escH(l.zona||'Sin zona')}</div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+            <span style="background:${estColor};color:#fff;font-size:11px;font-weight:700;padding:3px 10px;border-radius:20px">${escH(l.estado||'Nuevo')}</span>
+            ${l.prioridadCaptacion ? `<span style="font-size:11px;font-weight:700">${escH(l.prioridadCaptacion)}</span>` : ''}
+            ${renderOrigenBadge(l.origen||'Laura')}
+          </div>
+        </div>
+        <div style="display:flex;gap:8px;flex-shrink:0">
+          <button onclick="editarLead(${idx})" style="padding:9px 18px;border-radius:8px;border:1.5px solid var(--border);background:#f8fafc;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;color:var(--teal)">✏️ Editar</button>
+          ${l.estado !== 'Convertido a captación' && l.estado !== 'Descartado' ? `<button onclick="convertirACaptacion(${idx})" style="padding:9px 18px;border-radius:8px;border:none;background:#10b981;color:#fff;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit">✅ Captar</button>` : ''}
+        </div>
+      </div>
+
+      <!-- Grid de datos -->
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:20px">
+
+        <div style="background:#f8fafc;border-radius:10px;padding:14px">
+          <div style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px">Activo</div>
+          ${l.tipoActivo ? `<div style="font-size:12px;margin-bottom:4px"><span style="color:var(--muted)">Tipo:</span> <strong>${escH(l.tipoActivo)}</strong></div>` : ''}
+          ${l.operacion ? `<div style="font-size:12px;margin-bottom:4px"><span style="color:var(--muted)">Operación:</span> <strong>${escH(l.operacion)}</strong></div>` : ''}
+          ${l.superficie ? `<div style="font-size:12px;margin-bottom:4px"><span style="color:var(--muted)">Superficie:</span> <strong>${escH(l.superficie)} m²</strong></div>` : ''}
+          ${l.precio ? `<div style="font-size:12px;margin-bottom:4px"><span style="color:var(--muted)">Precio:</span> <strong style="color:var(--teal)">€${Number(l.precio).toLocaleString('es-ES')}</strong></div>` : ''}
+          ${l.precioAnterior ? `<div style="font-size:12px;margin-bottom:4px"><span style="color:var(--muted)">Precio ant.:</span> <strong style="text-decoration:line-through;color:#f87171">€${Number(l.precioAnterior).toLocaleString('es-ES')}</strong></div>` : ''}
+          ${l.preciom2 ? `<div style="font-size:12px;margin-bottom:4px"><span style="color:var(--muted)">€/m²:</span> <strong>${escH(l.preciom2)}</strong></div>` : ''}
+        </div>
+
+        <div style="background:#f8fafc;border-radius:10px;padding:14px">
+          <div style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px">Ubicación</div>
+          ${l.zona ? `<div style="font-size:12px;margin-bottom:4px"><span style="color:var(--muted)">Zona:</span> <strong>${escH(l.zona)}</strong></div>` : ''}
+          ${l.direccion ? `<div style="font-size:12px;margin-bottom:4px"><span style="color:var(--muted)">Dirección:</span> <strong>${escH(l.direccion)}</strong></div>` : ''}
+          ${l.fuente ? `<div style="font-size:12px;margin-bottom:4px"><span style="color:var(--muted)">Fuente:</span> <strong>${escH(l.fuente)}</strong></div>` : ''}
+          ${l.enlace ? `<div style="margin-top:8px"><a href="${escH(l.enlace)}" target="_blank" style="display:inline-flex;align-items:center;gap:5px;background:#f0f9fc;border:1px solid #bde0ed;border-radius:6px;padding:5px 12px;font-size:12px;font-weight:700;color:var(--teal);text-decoration:none">🔗 Ver anuncio</a></div>` : ''}
+        </div>
+
+        <div style="background:#f8fafc;border-radius:10px;padding:14px">
+          <div style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px">Contacto</div>
+          ${l.nombre ? `<div style="font-size:13px;font-weight:700;color:var(--teal);margin-bottom:6px">${escH(l.nombre)}</div>` : ''}
+          ${l.perfil ? `<div style="font-size:11px;font-weight:700;color:${l.perfil==='Particular'||l.perfil==='Propietario directo'?'#10b981':'#f59e0b'};margin-bottom:6px">${escH(l.perfil)}</div>` : ''}
+          ${l.telefono ? `<a href="tel:${escH(l.telefono)}" style="display:inline-flex;align-items:center;gap:6px;background:#e0f2f7;border-radius:6px;padding:6px 12px;font-size:13px;font-weight:700;color:var(--teal);text-decoration:none;margin-bottom:4px">📞 ${escH(l.telefono)}</a>` : ''}
+          ${l.email ? `<div style="font-size:12px;color:var(--muted);margin-top:4px">✉️ ${escH(l.email)}</div>` : ''}
+        </div>
+
+      </div>
+
+      <!-- Seguimiento -->
+      <div style="background:${vencido?'#fff1f2':'#f0f9fc'};border:1px solid ${vencido?'#fca5a5':'#bde0ed'};border-radius:10px;padding:14px 18px;margin-bottom:16px">
+        <div style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px">Seguimiento</div>
+        <div style="display:flex;gap:20px;flex-wrap:wrap;font-size:12px">
+          ${l.fecha ? `<span><span style="color:var(--muted)">Detectado:</span> <strong>${escH(l.fecha)}</strong></span>` : ''}
+          ${l.fechaActualizacion ? `<span><span style="color:var(--muted)">Última act. anuncio:</span> <strong>${escH(l.fechaActualizacion)}</strong></span>` : ''}
+          ${l.proximoContacto ? `<span style="color:${vencido?'#ef4444':'#3b82f6'}"><strong>${vencido?'⚠️ Vencido':'⏰ Próx. contacto'}: ${escH(l.proximoContacto)}</strong></span>` : ''}
+          ${l.diasSinActualizar ? `<span><span style="color:var(--muted)">Sin actualizar:</span> <strong>${escH(l.diasSinActualizar)} días</strong></span>` : ''}
+        </div>
+      </div>
+
+      <!-- Observaciones -->
+      ${l.obs ? `<div style="background:#fffbeb;border:1px solid #fde68a;border-radius:8px;padding:12px 16px;font-size:13px;color:#78350f;font-style:italic">${escH(l.obs)}</div>` : ''}
+
+    </div>
+  </div>`;
 }
 
 function editarLead(idx) {
