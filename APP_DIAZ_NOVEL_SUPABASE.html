@@ -767,17 +767,24 @@ function openGlobalView(estado) {
   const cardsHTML = [...activos,...archivados].join('') || '<div class="empty-state">No hay propiedades en este estado</div>';
   const titulo = estado ? `Vista global · ${estado}` : 'Vista global · Todas las propiedades';
 
-  const searchBarHTML = estado === 'Captación' ? `
-    <div style="margin-bottom:14px;display:flex;gap:10px;align-items:center">
-      <div style="position:relative;flex:1;max-width:400px">
-        <span style="position:absolute;left:12px;top:50%;transform:translateY(-50%);font-size:15px;pointer-events:none">🔍</span>
-        <input id="captacion-search" type="text" placeholder="Buscar por nombre o teléfono del anunciante..."
-          oninput="filtrarCaptacion(this.value)"
-          style="width:100%;padding:9px 12px 9px 38px;border-radius:9px;border:1.5px solid var(--border);font-size:13px;font-family:inherit;background:#f8fafc;outline:none;transition:border-color 0.15s"
-          onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='var(--border)'">
-      </div>
-      <div id="captacion-count" style="font-size:12px;color:#94a3b8">${total} propiedad${total!==1?'es':''}</div>
-    </div>` : '';
+  // Buscador solo en vista Captación — construido sin template literal anidado
+  const totalTxt = total + ' propiedad' + (total!==1?'es':'');
+  const searchBarHTML = estado === 'Captación'
+    ? '<div style="margin-bottom:14px;display:flex;gap:10px;align-items:center">'
+      + '<div style="position:relative;flex:1;max-width:420px">'
+      + '<span style="position:absolute;left:12px;top:50%;transform:translateY(-50%);font-size:15px;pointer-events:none">🔍</span>'
+      + '<input id="captacion-search" type="text" placeholder="Buscar por nombre o teléfono..."'
+      + ' oninput="filtrarCaptacion(this.value)"'
+      + ' style="width:100%;padding:9px 12px 9px 38px;border-radius:9px;border:1.5px solid #e2e8f0;font-size:13px;font-family:inherit;background:#f8fafc;outline:none"'
+      + ' onfocus="this.style.borderColor='#17a2b8'" onblur="this.style.borderColor='#e2e8f0'">'
+      + '</div>'
+      + '<div id="captacion-count" style="font-size:12px;color:#94a3b8">' + totalTxt + '</div>'
+      + '</div>'
+    : '';
+
+  const subTitleHTML = estado !== 'Captación'
+    ? '<div style="font-size:12px;color:#64748b">' + totalTxt + ' · todos los tipos</div>'
+    : '';
 
   document.getElementById('content').innerHTML = `
     <div style="display:flex;align-items:center;gap:6px;margin-bottom:12px;font-size:12px;color:#94a3b8">
@@ -787,7 +794,7 @@ function openGlobalView(estado) {
     </div>
     <div style="margin-bottom:16px">
       <div style="font-size:18px;font-weight:800;color:#0f4c5c">${titulo}</div>
-      ${estado !== 'Captación' ? `<div style="font-size:12px;color:#64748b">${total} propiedad${total!==1?'es':''} · todos los tipos</div>` : ''}
+      ${subTitleHTML}
     </div>
     ${searchBarHTML}
     <div id="captacion-cards">${cardsHTML}</div>`;
@@ -3552,7 +3559,7 @@ function convertirACaptacion(idx) {
 
   // Crear activo con TODOS los datos del lead
   const nuevo = {
-    ref: genRef(tipo),
+    ref: genRefCap(),
     provincia: 'Málaga',
     municipio: l.zona ? l.zona.split('·')[l.zona.split('·').length-1].trim() : '',
     zona: l.zona || '',
