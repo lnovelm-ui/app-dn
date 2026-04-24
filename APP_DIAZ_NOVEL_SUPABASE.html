@@ -3201,6 +3201,8 @@ let leadEditIdx = null;
 let leadFiltEstado = '';
 let leadFiltFuente = '';
 let leadFiltTipo = '';
+let leadFiltPerfil = '';
+let leadFiltOperacion = '';
 
 function genLeadRef() {
   const leads = DB.leads || [];
@@ -3218,6 +3220,9 @@ function renderProspeccion() {
     if(leadFiltEstado && l.estado !== leadFiltEstado) return false;
     if(leadFiltFuente && l.fuente !== leadFiltFuente) return false;
     if(leadFiltTipo && l.tipoActivo !== leadFiltTipo) return false;
+    if(leadFiltPerfil === 'Particular' && !(l.perfil==='Particular' || l.perfil==='Propietario directo')) return false;
+    if(leadFiltPerfil === 'Profesional' && (l.perfil==='Particular' || l.perfil==='Propietario directo' || !l.perfil)) return false;
+    if(leadFiltOperacion && l.operacion !== leadFiltOperacion) return false;
     return true;
   });
 
@@ -3396,6 +3401,21 @@ function renderProspeccion() {
         <select onchange="leadFiltTipo=this.value;renderProspeccion()" style="width:100%;padding:8px 10px;border-radius:8px;border:1.5px solid var(--border);font-size:13px;font-family:inherit;background:#f8fafc">
           <option value="">Todos los tipos</option>
           ${LEAD_TIPOS.map(t=>`<option value="${escH(t)}"${t===leadFiltTipo?' selected':''}>${escH(t)}</option>`).join('')}
+        </select>
+      </div>
+      <div style="flex:1;min-width:160px">
+        <select onchange="leadFiltPerfil=this.value;renderProspeccion()" style="width:100%;padding:8px 10px;border-radius:8px;border:1.5px solid var(--border);font-size:13px;font-family:inherit;background:#f8fafc">
+          <option value="">Particular y profesional</option>
+          <option value="Particular"${leadFiltPerfil==='Particular'?' selected':''}>👤 Solo particulares</option>
+          <option value="Profesional"${leadFiltPerfil==='Profesional'?' selected':''}>🏢 Solo profesionales</option>
+        </select>
+      </div>
+      <div style="flex:1;min-width:160px">
+        <select onchange="leadFiltOperacion=this.value;renderProspeccion()" style="width:100%;padding:8px 10px;border-radius:8px;border:1.5px solid var(--border);font-size:13px;font-family:inherit;background:#f8fafc">
+          <option value="">Venta y alquiler</option>
+          <option value="Venta"${leadFiltOperacion==='Venta'?' selected':''}>💶 Solo venta</option>
+          <option value="Alquiler"${leadFiltOperacion==='Alquiler'?' selected':''}>🔑 Solo alquiler</option>
+          <option value="Ambos"${leadFiltOperacion==='Ambos'?' selected':''}>↔ Ambos</option>
         </select>
       </div>
     </div>
