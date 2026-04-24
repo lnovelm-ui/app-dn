@@ -527,7 +527,7 @@ const PRODS_CLI = ['nave','oficina','local','piso','chalet','ambos'];
 const PERF_COLOR = {Inversor:'#7c3aed',Empresa:'#0f4c5c',Particular:'#64748b'};
 
 // ── PROSPECCIÓN CONSTANTS ────────────────────────────────────────────────────
-const LEAD_FUENTES = ['Milanuncios','Wallapop','Locales.es','LoopNet','Fotocasa','Habitaclia','Yaencontre','Facebook Marketplace','Pisos.com','Indomio','BORME','Alerta Google','Catastro','Red / Contacto','Otro'];
+const LEAD_FUENTES = ['Idealista','Fotocasa','Milanuncios','Wallapop','Facebook Marketplace','Otras webs','Otros'];
 const LEAD_TIPOS = ['Local comercial','Nave industrial','Oficina','Otro'];
 const LEAD_OPS = ['Venta','Alquiler','Ambos'];
 const LEAD_PERFILES = ['Propietario directo','Inversor','Empresa en dificultades','Por determinar'];
@@ -3208,12 +3208,16 @@ function renderProspeccion() {
           <div style="display:flex;flex-direction:column;gap:3px">
             <label style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px">Fuente *</label>
             <select id="lf_fuente" style="padding:8px 10px;border-radius:7px;border:1.5px solid var(--border);font-size:13px;font-family:inherit;background:#f8fafc">
-              ${LEAD_FUENTES.map(f=>`<option value="${escH(f)}"${f===(d.fuente||'Milanuncios')?' selected':''}>${escH(f)}</option>`).join('')}
+              ${LEAD_FUENTES.map(f=>`<option value="${escH(f)}"${f===(d.fuente||'Idealista')?' selected':''}>${escH(f)}</option>`).join('')}
             </select>
           </div>
           <div style="display:flex;flex-direction:column;gap:3px">
             <label style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px">Fecha detección</label>
             <input type="date" id="lf_fecha" value="${escH(d.fecha || new Date().toISOString().slice(0,10))}" style="padding:8px 10px;border-radius:7px;border:1.5px solid var(--border);font-size:13px;font-family:inherit">
+          </div>
+          <div style="display:flex;flex-direction:column;gap:3px">
+            <label style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px">Última actualización anuncio</label>
+            <input type="date" id="lf_fechaUltimaActualizacion" value="${escH(d.fechaUltimaActualizacion||'')}" style="padding:8px 10px;border-radius:7px;border:1.5px solid var(--border);font-size:13px;font-family:inherit">
           </div>
           <div style="display:flex;flex-direction:column;gap:3px">
             <label style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px">Semana</label>
@@ -3430,7 +3434,7 @@ function renderProspeccion() {
               ${l.nombre ? `<span>👤 ${escH(l.nombre)}</span>` : ''}
               <span style="color:${l.perfil==='Propietario directo'?'#10b981':l.perfil==='Inversor'?'#7c3aed':'#f59e0b'};font-weight:600">${escH(l.perfil||'—')}</span>
               ${renderOrigenBadge(l.origen||'Laura')}
-              ${l.fecha ? `<span>📅 ${escH(l.fecha)}</span>` : ''}
+              ${l.fechaUltimaActualizacion ? `<span title="Última actualización del anuncio">🔄 ${escH(l.fechaUltimaActualizacion)}</span>` : (l.fecha ? `<span title="Fecha de detección">📅 ${escH(l.fecha)}</span>` : '')}
               ${renderFechaBadge(vencido, l.proximoContacto)}
             </div>
             ${l.direccion ? `<div style="font-size:12px;color:#64748b;margin-top:3px">📍 ${escH(l.direccion)}</div>` : ''}
@@ -3442,6 +3446,7 @@ function renderProspeccion() {
               ${l.fechaActualizacion ? `<span style="color:#94a3b8">${escH(l.fechaActualizacion)}</span>` : ''}
             </div>
             ${l.obs ? `<div style="font-size:12px;color:var(--muted);margin-top:4px;font-style:italic">${escH(l.obs)}</div>` : ''}
+            ${l.fechaUltimaActualizacion ? `<div style="font-size:11px;color:#94a3b8;margin-top:3px">📅 Detectado: ${escH(l.fecha||'—')} &nbsp;·&nbsp; 🔄 Última act.: <strong>${escH(l.fechaUltimaActualizacion)}</strong></div>` : ''}
           </div>
           <div style="display:flex;flex-direction:column;gap:6px;align-items:flex-end">
             <button onclick="editarLead(${realIdx})" style="padding:6px 12px;border-radius:7px;border:1.5px solid var(--border);background:#f8fafc;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;color:var(--teal)">✏️ Editar</button>
@@ -3516,6 +3521,7 @@ function guardarLead() {
     preciom2: document.getElementById('lf_preciom2').value,
     prioridadCaptacion: document.getElementById('lf_prioridadCaptacion').value,
     fechaActualizacion: document.getElementById('lf_fechaActualizacion').value,
+    fechaUltimaActualizacion: document.getElementById('lf_fechaUltimaActualizacion').value,
     diasSinActualizar: document.getElementById('lf_diasSinActualizar').value,
     updatedAt: new Date().toISOString()
   };
