@@ -8,6 +8,7 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <style>
   :root {
     --teal: #0f4c5c;
@@ -3151,6 +3152,8 @@ let leadEditIdx = null;
 let leadFiltEstado = '';
 let leadFiltFuente = '';
 let leadFiltTipo = '';
+let leadFiltPerfil = '';
+let leadSubTab = 'leads';
 
 function genLeadRef() {
   const leads = DB.leads || [];
@@ -3168,6 +3171,8 @@ function renderProspeccion() {
     if(leadFiltEstado && l.estado !== leadFiltEstado) return false;
     if(leadFiltFuente && l.fuente !== leadFiltFuente) return false;
     if(leadFiltTipo && l.tipoActivo !== leadFiltTipo) return false;
+    if(leadFiltPerfil === 'Particular' && !(l.perfil==='Particular' || l.perfil==='Propietario directo')) return false;
+    if(leadFiltPerfil === 'Profesional' && (l.perfil==='Particular' || l.perfil==='Propietario directo' || !l.perfil)) return false;
     return true;
   });
 
@@ -3332,6 +3337,15 @@ function renderProspeccion() {
       <span style="color:#c2410c;font-weight:700;font-size:13px">🔍 Prospección · ${total} leads</span>
     </div>
 
+    <!-- Sub-tabs -->
+    <div style="display:flex;gap:0;border-bottom:2px solid var(--border);margin-bottom:20px">
+      <button onclick="leadSubTab='leads';renderProspeccion()" style="padding:9px 20px;border:none;border-bottom:${leadSubTab!=='guia'?'3px solid var(--teal)':'3px solid transparent'};background:none;font-size:13px;font-weight:${leadSubTab!=='guia'?'700':'500'};color:${leadSubTab!=='guia'?'var(--teal)':'var(--muted)'};cursor:pointer;font-family:inherit;margin-bottom:-2px">📋 Leads</button>
+      <button onclick="leadSubTab='guia';renderProspeccion()" style="padding:9px 20px;border:none;border-bottom:${leadSubTab==='guia'?'3px solid var(--teal)':'3px solid transparent'};background:none;font-size:13px;font-weight:${leadSubTab==='guia'?'700':'500'};color:${leadSubTab==='guia'?'var(--teal)':'var(--muted)'};cursor:pointer;font-family:inherit;margin-bottom:-2px">💡 Guía de captación</button>
+    </div>
+
+    ${leadSubTab === 'guia' ? renderGuiaCaptacion() : ''}
+    ${leadSubTab === 'guia' ? '' : `
+
     <!-- Stats -->
     <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px">
       <div style="background:#fff;border-radius:12px;border:1px solid var(--border);padding:16px 18px;box-shadow:var(--shadow)">
@@ -3356,6 +3370,10 @@ function renderProspeccion() {
     <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:16px">
       <button onclick="abrirNuevoLead()" style="padding:9px 18px;border-radius:8px;border:none;background:var(--teal);color:#fff;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;display:flex;align-items:center;gap:6px">➕ Nuevo lead</button>
       <button onclick="exportarLeadsCSV()" style="padding:9px 16px;border-radius:8px;border:1.5px solid var(--border);background:#fff;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;color:var(--teal)">⬇ Exportar CSV</button>
+      <label style="padding:9px 16px;border-radius:8px;border:1.5px solid #fed7aa;background:#fff7ed;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;color:#c2410c;display:flex;align-items:center;gap:6px">
+        📥 Importar Excel
+        <input type="file" accept=".xlsx,.xls" onchange="importarExcel(this)" style="display:none">
+      </label>
       <div style="flex:1;min-width:160px">
         <select onchange="leadFiltEstado=this.value;renderProspeccion()" style="width:100%;padding:8px 10px;border-radius:8px;border:1.5px solid var(--border);font-size:13px;font-family:inherit;background:#f8fafc">
           <option value="">Todos los estados</option>
@@ -3372,6 +3390,13 @@ function renderProspeccion() {
         <select onchange="leadFiltTipo=this.value;renderProspeccion()" style="width:100%;padding:8px 10px;border-radius:8px;border:1.5px solid var(--border);font-size:13px;font-family:inherit;background:#f8fafc">
           <option value="">Todos los tipos</option>
           ${LEAD_TIPOS.map(t=>`<option value="${escH(t)}"${t===leadFiltTipo?' selected':''}>${escH(t)}</option>`).join('')}
+        </select>
+      </div>
+      <div style="flex:1;min-width:160px">
+        <select onchange="leadFiltPerfil=this.value;renderProspeccion()" style="width:100%;padding:8px 10px;border-radius:8px;border:1.5px solid var(--border);font-size:13px;font-family:inherit;background:#f8fafc">
+          <option value="">Particular y profesional</option>
+          <option value="Particular"${leadFiltPerfil==='Particular'?' selected':''}>👤 Solo particulares</option>
+          <option value="Profesional"${leadFiltPerfil==='Profesional'?' selected':''}>🏢 Solo profesionales</option>
         </select>
       </div>
     </div>
@@ -3538,6 +3563,276 @@ function convertirACaptacion(idx) {
   saveDB();
   alert(`✅ Lead convertido. Se ha creado el activo ${nuevo.ref} en ${tipo.charAt(0).toUpperCase()+tipo.slice(1)}.`);
   doSwitchTab(tipo);
+}
+
+function importarExcel(input) {
+  const file = input.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    try {
+      const wb = XLSX.read(e.target.result, {type:'array'});
+      const ws = wb.Sheets[wb.SheetNames[0]];
+      const rows = XLSX.utils.sheet_to_json(ws, {defval:''});
+
+      // Column name map — tolerant of accents/spaces
+      function col(row, ...names) {
+        for (const n of names) {
+          for (const k of Object.keys(row)) {
+            if (k.trim().toLowerCase() === n.toLowerCase()) return String(row[k]||'').trim();
+          }
+        }
+        return '';
+      }
+
+      const VALID_TIPOS = ['Nave','Local','Oficina'];
+      const nuevos = [];
+      const yaExisten = (DB.leads||[]).map(l=>l.enlace).filter(Boolean);
+
+      for (const row of rows) {
+        const tipo = col(row,'Tipo de inmueble','Tipo');
+        if (!VALID_TIPOS.includes(tipo)) continue;
+
+        // Deduplicate by URL
+        const url = col(row,'URL del anuncio','URL','Enlace','enlace');
+        if (url && yaExisten.includes(url)) continue;
+
+        const prioridad = col(row,'Prioridad captación','Prioridad');
+        let estado = 'Nuevo';
+        if (prioridad.includes('PRIORITARIO')) estado = 'En seguimiento';
+        else if (prioridad.includes('SEGUIMIENTO')) estado = 'En seguimiento';
+
+        const zona = col(row,'Barrio/Zona','Barrio','Zona');
+        const municipio = col(row,'Municipio') || 'Málaga';
+        const zonaFull = zona ? zona + ' · ' + municipio : municipio;
+
+        const precio = col(row,'Precio (€)','Precio');
+        const precioNum = parseFloat(precio);
+        const precioStr = !isNaN(precioNum) ? String(Math.round(precioNum)) : precio;
+
+        const precioAnt = col(row,'Precio anterior (€)','Precio anterior');
+        const precioAntNum = parseFloat(precioAnt);
+        const precioAntStr = !isNaN(precioAntNum) && precioAntNum > 0 ? String(Math.round(precioAntNum)) : '';
+
+        const sup = col(row,'Superficie (m²)','Superficie');
+        const supNum = parseFloat(sup);
+        const supStr = !isNaN(supNum) ? String(Math.round(supNum)) : sup;
+
+        const epm2 = col(row,'€/m²','€/m2','Euros m2');
+        const epm2Num = parseFloat(epm2);
+        const epm2Str = !isNaN(epm2Num) ? String(Math.round(epm2Num)) : epm2;
+
+        // Generate ref
+        const nums = (DB.leads||[]).map(l=>parseInt((l.ref||'').replace('LEAD-',''))).filter(n=>!isNaN(n));
+        const nextNum = nums.length ? Math.max(...nums) + 1 + nuevos.length : nuevos.length + 1;
+        const ref = 'LEAD-' + String(nextNum).padStart(3,'0');
+
+        nuevos.push({
+          ref,
+          origen: 'Francisco',
+          fuente: col(row,'Portal Web','Portal','Fuente') || 'Idealista',
+          fecha: new Date().toISOString().slice(0,10),
+          semana: String(getWeekLabel()),
+          tipoActivo: tipo,
+          operacion: 'Venta',
+          perfil: col(row,'Tipo','Perfil') || 'Desconocido',
+          zona: zonaFull,
+          direccion: col(row,'Dirección','Direccion'),
+          superficie: supStr,
+          precio: precioStr,
+          precioAnterior: precioAntStr,
+          preciom2: epm2Str,
+          nombre: col(row,'Contacto','Nombre','Empresa'),
+          telefono: col(row,'Teléfono','Telefono'),
+          email: col(row,'Email','email') || '',
+          estado,
+          enlace: url,
+          proximoContacto: '',
+          prioridadCaptacion: prioridad,
+          fechaActualizacion: col(row,'Fecha de actualización','Fecha actualización','Fecha actualizacion'),
+          diasSinActualizar: col(row,'Días sin actualizar','Dias sin actualizar') || '',
+          obs: '',
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString()
+        });
+      }
+
+      if (!nuevos.length) {
+        alert('No se han encontrado leads nuevos. Los ya existentes (por URL) se han omitido.');
+        input.value = '';
+        return;
+      }
+
+      if(!DB.leads) DB.leads = [];
+      // Prepend new leads
+      DB.leads.unshift(...nuevos);
+      saveDB();
+      renderProspeccion();
+      alert('✅ ' + nuevos.length + ' lead' + (nuevos.length===1?'':'s') + ' importado' + (nuevos.length===1?'':'s') + ' correctamente.\nLos duplicados (misma URL) se han omitido automáticamente.');
+    } catch(err) {
+      alert('Error al leer el archivo: ' + err.message);
+    }
+    input.value = '';
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+function renderGuiaCaptacion() {
+  return `<div style="display:flex;flex-direction:column;gap:16px;padding-bottom:40px">
+
+    <!-- Señales de alerta en el anuncio -->
+    <div style="background:#fff;border-radius:14px;border:1px solid var(--border);padding:22px 24px;box-shadow:var(--shadow)">
+      <div style="font-size:15px;font-weight:800;color:var(--teal);margin-bottom:14px;display:flex;align-items:center;gap:8px">🚨 Señales que indican que merece la pena llamar</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+        <div style="background:#fef3c7;border-radius:10px;padding:12px 14px;border-left:4px solid #f59e0b">
+          <div style="font-size:12px;font-weight:700;color:#92400e;margin-bottom:4px">⏱ Lleva más de 90 días publicado</div>
+          <div style="font-size:12px;color:#78350f">El propietario está frustrado y abierto a negociar. Es el momento de entrar. Cuanto más tiempo lleve, menos poder tiene para rechazarte.</div>
+        </div>
+        <div style="background:#fef3c7;border-radius:10px;padding:12px 14px;border-left:4px solid #f59e0b">
+          <div style="font-size:12px;font-weight:700;color:#92400e;margin-bottom:4px">📉 El precio ha bajado</div>
+          <div style="font-size:12px;color:#78350f">Una o varias bajadas de precio confirman que no se vende solo. El campo "Precio anterior" en el lead te lo indica. Señal clara de propietario motivado.</div>
+        </div>
+        <div style="background:#dcfce7;border-radius:10px;padding:12px 14px;border-left:4px solid #10b981">
+          <div style="font-size:12px;font-weight:700;color:#065f46;margin-bottom:4px">👤 Anuncio de particular (sin agencia)</div>
+          <div style="font-size:12px;color:#047857">Sin REF. comercial · descripción en 1ª persona · móvil directo · sin logo de agencia · sin "IVA no incluido". Estos son los objetivos prioritarios.</div>
+        </div>
+        <div style="background:#dcfce7;border-radius:10px;padding:12px 14px;border-left:4px solid #10b981">
+          <div style="font-size:12px;font-weight:700;color:#065f46;margin-bottom:4px">🆕 Publicado hace menos de 24h</div>
+          <div style="font-size:12px;color:#047857">Llama ese mismo día. Los primeros en llamar tienen ventaja clara. Frase: "Vi su local/nave en [portal], soy especialista en terciario en la zona, ¿sigue disponible?"</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Identificar si es particular o agencia -->
+    <div style="background:#fff;border-radius:14px;border:1px solid var(--border);padding:22px 24px;box-shadow:var(--shadow)">
+      <div style="font-size:15px;font-weight:800;color:var(--teal);margin-bottom:14px;display:flex;align-items:center;gap:8px">🔍 ¿Particular o agencia? Cómo identificarlo</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+        <div>
+          <div style="font-size:12px;font-weight:700;color:#10b981;margin-bottom:8px;text-transform:uppercase;letter-spacing:0.5px">✅ Señales de particular</div>
+          <ul style="font-size:12px;color:#374151;line-height:1.8;padding-left:16px;margin:0">
+            <li>Descripción en primera persona ("vendo mi local")</li>
+            <li>Sin código de referencia (REF-XXXX)</li>
+            <li>Sin logo ni marca de agencia</li>
+            <li>Teléfono móvil directo (6xx / 7xx)</li>
+            <li>Precio sin IVA especificado</li>
+            <li>Fotos caseras o sin tratamiento profesional</li>
+            <li>Responde él mismo por WhatsApp</li>
+          </ul>
+        </div>
+        <div>
+          <div style="font-size:12px;font-weight:700;color:#ef4444;margin-bottom:8px;text-transform:uppercase;letter-spacing:0.5px">❌ Señales de agencia (descartar)</div>
+          <ul style="font-size:12px;color:#374151;line-height:1.8;padding-left:16px;margin:0">
+            <li>Geslawbrokers, Gilmar, Redpiso, Engel & Völkers, Century 21</li>
+            <li>Aparece REF. comercial en el anuncio</li>
+            <li>"Honorarios incluidos" o "más gastos de gestión"</li>
+            <li>Teléfono fijo o número 900</li>
+            <li>Fotos con marca de agua de la agencia</li>
+            <li>Responde un asesor diferente cada vez</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- Cuándo pedir nota simple -->
+    <div style="background:#fff;border-radius:14px;border:1px solid var(--border);padding:22px 24px;box-shadow:var(--shadow)">
+      <div style="font-size:15px;font-weight:800;color:var(--teal);margin-bottom:14px;display:flex;align-items:center;gap:8px">📄 Cuándo vale la pena pedir la nota simple (9€)</div>
+      <div style="font-size:13px;color:#374151;line-height:1.7;margin-bottom:12px">La nota simple del Registro de la Propiedad te da: nombre del propietario real, DNI/CIF, cargas, hipotecas y embargos. Se pide online en <strong>registradores.es</strong> con la referencia catastral o la dirección.</div>
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px">
+        <div style="background:#eff6ff;border-radius:10px;padding:12px;border-top:3px solid #3b82f6">
+          <div style="font-size:12px;font-weight:700;color:#1d4ed8;margin-bottom:4px">Merece la pena si…</div>
+          <div style="font-size:12px;color:#1e40af">Lleva +90 días sin venderse · precio bajado · activo de ticket alto (+150.000€) · nave o local estratégico en zona prime</div>
+        </div>
+        <div style="background:#f0fdf4;border-radius:10px;padding:12px;border-top:3px solid #10b981">
+          <div style="font-size:12px;font-weight:700;color:#065f46;margin-bottom:4px">Qué obtienes</div>
+          <div style="font-size:12px;color:#047857">Propietario real (no el anunciante) · si hay hipoteca activa · si tiene cargas que compliquen la operación · superficie escriturada vs. anunciada</div>
+        </div>
+        <div style="background:#faf5ff;border-radius:10px;padding:12px;border-top:3px solid #7c3aed">
+          <div style="font-size:12px;font-weight:700;color:#5b21b6;margin-bottom:4px">Cómo usarla</div>
+          <div style="font-size:12px;color:#6d28d9">Si el propietario tiene cargas → argumento para urgir la venta. Si hay diferencia de m² → palanca de negociación. Si es sociedad → busca el administrador en el Registro Mercantil.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Táctica de llamada -->
+    <div style="background:#fff;border-radius:14px;border:1px solid var(--border);padding:22px 24px;box-shadow:var(--shadow)">
+      <div style="font-size:15px;font-weight:800;color:var(--teal);margin-bottom:14px;display:flex;align-items:center;gap:8px">📞 Táctica de llamada</div>
+      <div style="display:flex;flex-direction:column;gap:8px">
+        <div style="background:#f8fafc;border-radius:8px;padding:12px 14px;border-left:3px solid var(--teal)">
+          <div style="font-size:12px;font-weight:700;color:var(--teal);margin-bottom:2px">Frase de apertura</div>
+          <div style="font-size:13px;color:#374151;font-style:italic">"Buenos días, vi su local/nave en [portal], soy agente especializado en terciario en la zona, ¿sigue disponible?"</div>
+        </div>
+        <div style="background:#f8fafc;border-radius:8px;padding:12px 14px;border-left:3px solid #f59e0b">
+          <div style="font-size:12px;font-weight:700;color:#92400e;margin-bottom:2px">Reglas clave</div>
+          <ul style="font-size:12px;color:#374151;line-height:1.8;padding-left:16px;margin:0">
+            <li>No mencionar honorarios en la primera llamada</li>
+            <li>Anuncio &lt;24h → llamar ese mismo día sin excepción</li>
+            <li>Si no responde → WhatsApp al día siguiente, no llamada</li>
+            <li>Si lleva +90 días → mencionar que conoces el mercado local y puedes valorarlo gratis</li>
+          </ul>
+        </div>
+        <div style="background:#f8fafc;border-radius:8px;padding:12px 14px;border-left:3px solid #10b981">
+          <div style="font-size:12px;font-weight:700;color:#065f46;margin-bottom:2px">Argumento para propietarios bloqueados</div>
+          <div style="font-size:13px;color:#374151;font-style:italic">"Lleva tiempo en el mercado porque el precio o la visibilidad no están bien calibrados. Yo tengo compradores activos para este tipo de activo y puedo traerle visitas cualificadas esta semana."</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Portales prioritarios -->
+    <div style="background:#fff;border-radius:14px;border:1px solid var(--border);padding:22px 24px;box-shadow:var(--shadow)">
+      <div style="font-size:15px;font-weight:800;color:var(--teal);margin-bottom:14px;display:flex;align-items:center;gap:8px">🌐 Portales: dónde buscar y por qué</div>
+      <div style="display:flex;flex-direction:column;gap:8px">
+        <div style="display:grid;grid-template-columns:80px 1fr;gap:10px;align-items:start;padding:10px 12px;background:#fef9c3;border-radius:8px">
+          <div style="font-size:11px;font-weight:800;color:#854d0e">★★★ PRIMERO</div>
+          <div style="font-size:12px;color:#374151"><strong>Milanuncios y Wallapop</strong> — Mayor ratio de propietario directo. Sin agencias. Muy accesibles por WhatsApp. Poca competencia de otros agentes.</div>
+        </div>
+        <div style="display:grid;grid-template-columns:80px 1fr;gap:10px;align-items:start;padding:10px 12px;background:#f0fdf4;border-radius:8px">
+          <div style="font-size:11px;font-weight:800;color:#065f46">★★★ FILTRO</div>
+          <div style="font-size:12px;color:#374151"><strong>Locales.es</strong> — Tiene filtro nativo de "propietario directo". El más fiable para descartar agencias automáticamente.</div>
+        </div>
+        <div style="display:grid;grid-template-columns:80px 1fr;gap:10px;align-items:start;padding:10px 12px;background:#eff6ff;border-radius:8px">
+          <div style="font-size:11px;font-weight:800;color:#1d4ed8">★★ TICKET</div>
+          <div style="font-size:12px;color:#374151"><strong>LoopNet</strong> — Terciario profesional. Perfil inversor o empresa. Honorarios más altos. Priorizar naves industriales y oficinas en Málaga capital.</div>
+        </div>
+        <div style="display:grid;grid-template-columns:80px 1fr;gap:10px;align-items:start;padding:10px 12px;background:#faf5ff;border-radius:8px">
+          <div style="font-size:11px;font-weight:800;color:#5b21b6">★★ MANUAL</div>
+          <div style="font-size:12px;color:#374151"><strong>Facebook Marketplace</strong> — Sin URL de filtro directo. Buscar manualmente: "local Málaga", "nave Vélez", "oficina Nerja". Propietarios muy accesibles, sin competencia de agencias.</div>
+        </div>
+        <div style="display:grid;grid-template-columns:80px 1fr;gap:10px;align-items:start;padding:10px 12px;background:#f1f5f9;border-radius:8px">
+          <div style="font-size:11px;font-weight:800;color:#475569">YA TIENES</div>
+          <div style="font-size:12px;color:#374151"><strong>Idealista y Fotocasa</strong> — Ya tienes perfil profesional activo. No duplicar aquí. Trabajarlos desde tu plataforma habitual.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Off-market vía catastro -->
+    <div style="background:#fff;border-radius:14px;border:1px solid var(--border);padding:22px 24px;box-shadow:var(--shadow)">
+      <div style="font-size:15px;font-weight:800;color:var(--teal);margin-bottom:14px;display:flex;align-items:center;gap:8px">🗺️ Captación off-market: activos que nunca han salido al portal</div>
+      <div style="font-size:13px;color:#374151;line-height:1.7;margin-bottom:12px">El activo más valioso es el que ningún otro agente ha visto. Para encontrarlo, el catastro es tu herramienta.</div>
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px">
+        <div style="background:#f8fafc;border-radius:10px;padding:12px;text-align:center">
+          <div style="font-size:20px;margin-bottom:6px">1️⃣</div>
+          <div style="font-size:11px;font-weight:700;color:var(--teal);margin-bottom:4px">Identifica el activo</div>
+          <div style="font-size:11px;color:#64748b">Nave o local vacío/infrautilizado que ves en campo o en una zona que conoces</div>
+        </div>
+        <div style="background:#f8fafc;border-radius:10px;padding:12px;text-align:center">
+          <div style="font-size:20px;margin-bottom:6px">2️⃣</div>
+          <div style="font-size:11px;font-weight:700;color:var(--teal);margin-bottom:4px">Catastro gratuito</div>
+          <div style="font-size:11px;color:#64748b">sedecatastro.gob.es → dirección → obtienes referencia catastral, m², uso y antigüedad</div>
+        </div>
+        <div style="background:#f8fafc;border-radius:10px;padding:12px;text-align:center">
+          <div style="font-size:20px;margin-bottom:6px">3️⃣</div>
+          <div style="font-size:11px;font-weight:700;color:var(--teal);margin-bottom:4px">Nota simple (9€)</div>
+          <div style="font-size:11px;color:#64748b">registradores.es → nombre del propietario real, cargas e hipotecas</div>
+        </div>
+        <div style="background:#f8fafc;border-radius:10px;padding:12px;text-align:center">
+          <div style="font-size:20px;margin-bottom:6px">4️⃣</div>
+          <div style="font-size:11px;font-weight:700;color:var(--teal);margin-bottom:4px">Contacto directo</div>
+          <div style="font-size:11px;color:#64748b">Llegas al propietario con información que él mismo a veces no tiene ordenada. Eso es captación inteligente.</div>
+        </div>
+      </div>
+    </div>
+
+  </div>`;
 }
 
 function exportarLeadsCSV() {
