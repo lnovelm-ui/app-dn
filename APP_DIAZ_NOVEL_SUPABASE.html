@@ -530,7 +530,7 @@ const PERF_COLOR = {Inversor:'#7c3aed',Empresa:'#0f4c5c',Particular:'#64748b'};
 const LEAD_FUENTES = ['Idealista','Fotocasa','Milanuncios','Wallapop','Facebook Marketplace','Otras webs','Otros'];
 const LEAD_TIPOS = ['Local comercial','Nave industrial','Oficina','Otro'];
 const LEAD_OPS = ['Venta','Alquiler','Ambos'];
-const LEAD_PERFILES = ['Propietario directo','Inversor','Empresa en dificultades','Por determinar'];
+const LEAD_PERFILES = ['Particular','Propietario directo','Profesional','Inversor','Empresa en dificultades','Por determinar'];
 const LEAD_ESTADOS = ['Nuevo','En seguimiento','Contactado','Descartado','Convertido a captación'];
 const LEAD_ORIGEN = ['Laura','Francisco'];
 const LEAD_EST_COLOR = {'Nuevo':'#f59e0b','En seguimiento':'#3b82f6','Contactado':'#8b5cf6','Descartado':'#94a3b8','Convertido a captación':'#10b981'};
@@ -3241,7 +3241,7 @@ function renderProspeccion() {
           <div style="display:flex;flex-direction:column;gap:3px">
             <label style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px">Perfil</label>
             <select id="lf_perfil" style="padding:8px 10px;border-radius:7px;border:1.5px solid var(--border);font-size:13px;font-family:inherit;background:#f8fafc">
-              ${LEAD_PERFILES.map(p=>`<option value="${escH(p)}"${p===(d.perfil||'Propietario directo')?' selected':''}>${escH(p)}</option>`).join('')}
+              ${LEAD_PERFILES.map(p=>`<option value="${escH(p)}"${p===(d.perfil||'Por determinar')?' selected':''}>${escH(p)}</option>`).join('')}
             </select>
           </div>
           <div style="display:flex;flex-direction:column;gap:3px">
