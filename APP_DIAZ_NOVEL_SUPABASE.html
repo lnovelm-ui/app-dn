@@ -767,22 +767,20 @@ function openGlobalView(estado) {
   const cardsHTML = [...activos,...archivados].join('') || '<div class="empty-state">No hay propiedades en este estado</div>';
   const titulo = estado ? `Vista global · ${estado}` : 'Vista global · Todas las propiedades';
 
-  // Buscador solo en vista Captación — construido sin template literal anidado
-  const totalTxt = total + ' propiedad' + (total!==1?'es':'');
-  const searchBarHTML = estado === 'Captación'
-    ? '<div style="margin-bottom:14px;display:flex;gap:10px;align-items:center">'
+  const totalTxt = total + ' propiedad' + (total !== 1 ? 'es' : '');
+  let searchBar = '';
+  if(estado === 'Captación') {
+    searchBar = '<div style="margin-bottom:14px;display:flex;gap:10px;align-items:center">'
       + '<div style="position:relative;flex:1;max-width:420px">'
-      + '<span style="position:absolute;left:12px;top:50%;transform:translateY(-50%);font-size:15px;pointer-events:none">🔍</span>'
+      + '<span style="position:absolute;left:12px;top:50%;transform:translateY(-50%);font-size:15px;pointer-events:none">&#128269;</span>'
       + '<input id="captacion-search" type="text" placeholder="Buscar por nombre o teléfono..."'
       + ' oninput="filtrarCaptacion(this.value)"'
-      + ' style="width:100%;padding:9px 12px 9px 38px;border-radius:9px;border:1.5px solid #e2e8f0;font-size:13px;font-family:inherit;background:#f8fafc;outline:none"'
-      + ' onfocus="this.style.borderColor='#17a2b8'" onblur="this.style.borderColor='#e2e8f0'">'
+      + ' style="width:100%;padding:9px 12px 9px 38px;border-radius:9px;border:1.5px solid #e2e8f0;font-size:13px;font-family:inherit;background:#f8fafc;outline:none">'
       + '</div>'
       + '<div id="captacion-count" style="font-size:12px;color:#94a3b8">' + totalTxt + '</div>'
-      + '</div>'
-    : '';
-
-  const subTitleHTML = estado !== 'Captación'
+      + '</div>';
+  }
+  const subTitle = estado !== 'Captación'
     ? '<div style="font-size:12px;color:#64748b">' + totalTxt + ' · todos los tipos</div>'
     : '';
 
@@ -794,9 +792,9 @@ function openGlobalView(estado) {
     </div>
     <div style="margin-bottom:16px">
       <div style="font-size:18px;font-weight:800;color:#0f4c5c">${titulo}</div>
-      ${subTitleHTML}
+      ${subTitle}
     </div>
-    ${searchBarHTML}
+    ${searchBar}
     <div id="captacion-cards">${cardsHTML}</div>`;
   currentTab = '__global__';
 }
@@ -809,15 +807,14 @@ function filtrarCaptacion(q) {
     const list = DB[t]||[];
     list.forEach((a,i) => {
       if(a.estadoComercial !== 'Captación') return;
-      const prop = DB.propietarios.find(p=>p.id===a.propietarioId);
-      // Buscar también en leadNombre y leadTelefono guardados en el activo
-      const nombre = ((prop?.nombre||'') + ' ' + (a.leadNombre||'')).toLowerCase();
-      const tel = (prop?.tel1||'') + ' ' + (prop?.tel2||'') + ' ' + (a.leadTelefono||'');
-      const matchSearch = !s || nombre.includes(s) || tel.includes(s) ||
-        (a.direccion||'').toLowerCase().includes(s) ||
-        (a.zona||'').toLowerCase().includes(s) ||
-        (a.ref||'').toLowerCase().includes(s);
-      if(matchSearch) { allCards.push(assetCardHTML(a,t,i)); total++; }
+      const prop = (DB.propietarios||[]).find(p=>p.id===a.propietarioId);
+      const nombre = ((prop ? prop.nombre : '') + ' ' + (a.leadNombre||'')).toLowerCase();
+      const tel = (prop ? (prop.tel1||'') + ' ' + (prop.tel2||'') : '') + ' ' + (a.leadTelefono||'');
+      const match = !s || nombre.includes(s) || tel.includes(s)
+        || (a.direccion||'').toLowerCase().includes(s)
+        || (a.zona||'').toLowerCase().includes(s)
+        || (a.ref||'').toLowerCase().includes(s);
+      if(match) { allCards.push(assetCardHTML(a,t,i)); total++; }
     });
   });
   const cards = allCards.join('') || '<div class="empty-state">Sin resultados</div>';
@@ -1452,9 +1449,9 @@ function assetCardHTML(a, tipo, realIdx) {
        ${prop.tel2?`<a href="tel:${escH(prop.tel2)}" style="font-size:11px;color:#1a6678;font-weight:600;text-decoration:none;background:#e0f2f7;border-radius:5px;padding:1px 8px" onclick="event.stopPropagation()">📞 ${escH(prop.tel2)}</a>`:''}
      </div>`
   : `<div style="margin-top:4px;display:flex;align-items:center;gap:8px;flex-wrap:wrap">
-       ${a.leadNombre ? `<span style="font-size:11px;color:#0f4c5c;font-weight:700">👤 ${escH(a.leadNombre)}</span>` : ''}
-       ${a.leadTelefono ? `<a href="tel:${escH(a.leadTelefono)}" style="font-size:11px;color:#1a6678;font-weight:600;text-decoration:none;background:#e0f2f7;border-radius:5px;padding:1px 8px" onclick="event.stopPropagation()">📞 ${escH(a.leadTelefono)}</a>` : ''}
-       <span onclick="openEdit(${realIdx},'${tipo}')" style="font-size:10px;color:#f97316;font-weight:700;cursor:pointer;background:#fff7ed;border:1px solid #fed7aa;border-radius:5px;padding:1px 9px" title="Vincular propietario">⚠️ Vincular</span>
+       ${a.leadNombre ? `<span style="font-size:11px;color:#0f4c5c;font-weight:700">&#128100; ${escH(a.leadNombre)}</span>` : ''}
+       ${a.leadTelefono ? `<a href="tel:${escH(a.leadTelefono)}" style="font-size:11px;color:#1a6678;font-weight:600;text-decoration:none;background:#e0f2f7;border-radius:5px;padding:1px 8px" onclick="event.stopPropagation()">&#128222; ${escH(a.leadTelefono)}</a>` : ''}
+       <span onclick="openEdit(${realIdx},'${tipo}')" style="font-size:10px;color:#f97316;font-weight:700;cursor:pointer;background:#fff7ed;border:1px solid #fed7aa;border-radius:5px;padding:1px 9px">&#9888;&#65039; Vincular</span>
      </div>`
 }
           ${a.fechaCaptacion?`<div style="font-size:11px;color:#94a3b8;margin-top:2px">📅 Captación: <span style="font-weight:600">${new Date(a.fechaCaptacion+'T00:00').toLocaleDateString('es-ES')}</span></div>`:''}
@@ -3519,11 +3516,10 @@ function convertirACaptacion(idx) {
   const l = DB.leads[idx];
   if(!l) return;
 
-  // Marcar lead como convertido
   DB.leads[idx].estado = 'Convertido a captación';
   DB.leads[idx].convertidoAt = new Date().toISOString();
 
-  // Crear propietario automáticamente si hay nombre o teléfono
+  // Crear propietario si hay nombre o teléfono
   let propietarioId = '';
   if(l.nombre || l.telefono) {
     const telNorm = (l.telefono||'').replace(/[\s\-]/g,'');
@@ -3550,37 +3546,31 @@ function convertirACaptacion(idx) {
     }
   }
 
-  // Determinar tipo destino
   const tipoMap = {'Local comercial':'locales','Nave industrial':'naves','Oficina':'oficinas'};
   const tipo = tipoMap[l.tipoActivo] || 'locales';
-
-  // Extraer precio limpio (solo dígitos)
   const precioLimpio = (l.precio||'').replace(/[^\d]/g,'');
+  const zonaParts = (l.zona||'').split('·');
+  const municipio = zonaParts[zonaParts.length-1].trim();
 
-  // Crear activo con TODOS los datos del lead
   const nuevo = {
     ref: genRefCap(),
     provincia: 'Málaga',
-    municipio: l.zona ? l.zona.split('·')[l.zona.split('·').length-1].trim() : '',
+    municipio: municipio,
     zona: l.zona || '',
     direccion: l.direccion || '',
     tipoOperacion: l.operacion || 'Venta',
     precioVenta: (l.operacion === 'Venta' || l.operacion === 'Ambos') ? precioLimpio : '',
     precioAlquiler: (l.operacion === 'Alquiler' || l.operacion === 'Ambos') ? precioLimpio : '',
     superficie: l.superficie || '',
+    superficieTotal: tipo === 'naves' ? (l.superficie || '') : '',
     estadoContacto: 'Primer contacto',
     estadoComercial: 'Captación',
     documentacion: 'Pendiente',
     exclusiva: 'No',
-    propietarioId,
+    propietarioId: propietarioId,
     enlaceWeb: l.enlace || '',
     refCatastral: '',
-    observaciones: [
-      'Lead: ' + l.ref + ' · ' + (l.fuente||''),
-      l.prioridadCaptacion || '',
-      l.fechaActualizacion || '',
-      l.obs || ''
-    ].filter(Boolean).join(' · '),
+    observaciones: ['Lead: ' + l.ref + ' · ' + (l.fuente||''), l.prioridadCaptacion||'', l.fechaActualizacion||'', l.obs||''].filter(Boolean).join(' · '),
     honorariosTipo: 'porcentaje',
     honorariosPct: '',
     fechaCaptacion: new Date().toISOString().slice(0,10),
@@ -3593,22 +3583,16 @@ function convertirACaptacion(idx) {
     createdAt: new Date().toISOString()
   };
 
-  // Añadir campos específicos del tipo de activo
-  if(tipo === 'naves') nuevo.superficieTotal = l.superficie || '';
-  if(tipo === 'locales') nuevo.superficie = l.superficie || '';
-  if(tipo === 'oficinas') nuevo.superficie = l.superficie || '';
-
   if(!DB[tipo]) DB[tipo] = [];
   DB[tipo].unshift(nuevo);
   saveDB();
 
   const propMsg = propietarioId
     ? '\nPropietario "' + (l.nombre||l.telefono) + '" creado y vinculado.'
-    : '\n⚠️ Sin nombre ni teléfono — propietario no creado.';
-  alert('✅ Lead convertido. Activo ' + nuevo.ref + ' creado en Captación.' + propMsg);
+    : '\nSin nombre ni teléfono — propietario no creado.';
+  alert('Lead convertido. Activo ' + nuevo.ref + ' creado en Captación.' + propMsg);
   openGlobalView('Captación');
 }
-
 function exportarLeadsCSV() {
   const leads = DB.leads || [];
   if(!leads.length) { alert('No hay leads para exportar.'); return; }
