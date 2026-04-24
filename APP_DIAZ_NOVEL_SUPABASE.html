@@ -8,7 +8,6 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <style>
   :root {
     --teal: #0f4c5c;
@@ -450,7 +449,7 @@ const SUPABASE_ANON_KEY = 'sb_publishable_iODlAKMnlxyIPsFT7ibPAQ_2FJZUUX2';
 const _supa = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 // ── DATA ────────────────────────────────────────────────────────────────────
-const DEF = { naves:[], oficinas:[], locales:[], pisos:[], chalets:[], garajes:[], propietarios:[], clientes:[], leads:[{"ref":"LEAD-001","origen":"Francisco","fuente":"Idealista","fecha":"2026-04-24","semana":"17","tipoActivo":"Nave","operacion":"Venta","perfil":"Profesional","zona":"Polígonos - Recinto Ferial · Málaga","direccion":"Calle Hernan Hesse","superficie":"700","precio":"825000","precioAnterior":"","preciom2":"1179","nombre":"Valentín Disc Force","telefono":"951 12 16 21","email":"","estado":"Nuevo","enlace":"https://www.idealista.com/inmueble/111272779/","proximoContacto":"","prioridadCaptacion":"🟢 RECIENTE","fechaActualizacion":"Anuncio actualizado hace 22 horas","diasSinActualizar":"","obs":"","createdAt":"2026-04-24T00:00:00.000Z","updatedAt":"2026-04-24T00:00:00.000Z"},{"ref":"LEAD-002","origen":"Francisco","fuente":"Idealista","fecha":"2026-04-24","semana":"17","tipoActivo":"Nave","operacion":"Venta","perfil":"Particular","zona":"Fuente Alegre - El Chaparral - Los Morales · Málaga","direccion":"Calle Rubí, 35","superficie":"789","precio":"650000","precioAnterior":"680000","preciom2":"824","nombre":"Antonio I.","telefono":"640 90 89 75","email":"","estado":"Nuevo","enlace":"https://www.idealista.com/inmueble/111248444/","proximoContacto":"","prioridadCaptacion":"🟢 RECIENTE","fechaActualizacion":"Anuncio actualizado hace un día","diasSinActualizar":"","obs":"","createdAt":"2026-04-24T00:00:00.000Z","updatedAt":"2026-04-24T00:00:00.000Z"},{"ref":"LEAD-003","origen":"Francisco","fuente":"Idealista","fecha":"2026-04-24","semana":"17","tipoActivo":"Local","operacion":"Venta","perfil":"Profesional","zona":"Huelin · Málaga","direccion":"Calle Héroe de Sostoa","superficie":"806","precio":"745000","precioAnterior":"","preciom2":"924","nombre":"LUXUA HOMES","telefono":"951 12 40 91","email":"","estado":"Nuevo","enlace":"https://www.idealista.com/inmueble/111196663/","proximoContacto":"","prioridadCaptacion":"🟢 RECIENTE","fechaActualizacion":"Anuncio actualizado hace 8 días","diasSinActualizar":"","obs":"","createdAt":"2026-04-24T00:00:00.000Z","updatedAt":"2026-04-24T00:00:00.000Z"},{"ref":"LEAD-004","origen":"Francisco","fuente":"Idealista","fecha":"2026-04-24","semana":"17","tipoActivo":"Local","operacion":"Venta","perfil":"Profesional","zona":"Perchel norte · Málaga","direccion":"Calle Montes de Oca","superficie":"647","precio":"320000","precioAnterior":"","preciom2":"495","nombre":"Alfonso Heras / Inmobiliaria La Farola","telefono":"951 12 16 03","email":"","estado":"Nuevo","enlace":"https://www.idealista.com/inmueble/110780581/","proximoContacto":"","prioridadCaptacion":"🟢 RECIENTE","fechaActualizacion":"Anuncio actualizado hace 5 días","diasSinActualizar":"","obs":"","createdAt":"2026-04-24T00:00:00.000Z","updatedAt":"2026-04-24T00:00:00.000Z"},{"ref":"LEAD-005","origen":"Francisco","fuente":"Idealista","fecha":"2026-04-24","semana":"17","tipoActivo":"Local","operacion":"Venta","perfil":"Profesional","zona":"Centro Histórico · Málaga","direccion":"Centro Histórico","superficie":"10000","precio":"11500000","precioAnterior":"","preciom2":"1150","nombre":"IMPERIUM","telefono":"951 12 57 37","email":"","estado":"Nuevo","enlace":"https://www.idealista.com/inmueble/111160606/","proximoContacto":"","prioridadCaptacion":"🟢 RECIENTE","fechaActualizacion":"Anuncio actualizado hace 12 días","diasSinActualizar":"","obs":"","createdAt":"2026-04-24T00:00:00.000Z","updatedAt":"2026-04-24T00:00:00.000Z"},{"ref":"LEAD-006","origen":"Francisco","fuente":"Idealista","fecha":"2026-04-24","semana":"17","tipoActivo":"Nave","operacion":"Venta","perfil":"Profesional","zona":"Santa Cristina - San Rafael · Málaga","direccion":"Santa Cristina - San Rafael","superficie":"846","precio":"600000","precioAnterior":"","preciom2":"709","nombre":"Gilmar Málaga","telefono":"951 12 42 86","email":"","estado":"Nuevo","enlace":"https://www.idealista.com/inmueble/111125680/","proximoContacto":"","prioridadCaptacion":"🟢 RECIENTE","fechaActualizacion":"Anuncio actualizado hace 16 días","diasSinActualizar":"","obs":"","createdAt":"2026-04-24T00:00:00.000Z","updatedAt":"2026-04-24T00:00:00.000Z"},{"ref":"LEAD-007","origen":"Francisco","fuente":"Idealista","fecha":"2026-04-24","semana":"17","tipoActivo":"Nave","operacion":"Venta","perfil":"Profesional","zona":"Churriana - La Noria · Málaga","direccion":"Aeropuerto de Málaga","superficie":"1119","precio":"7000000","precioAnterior":"","preciom2":"6256","nombre":"Sa Roqueta Investment","telefono":"871 18 55 64","email":"","estado":"Nuevo","enlace":"https://www.idealista.com/inmueble/111120624/","proximoContacto":"","prioridadCaptacion":"🟢 RECIENTE","fechaActualizacion":"Anuncio actualizado hace 16 días","diasSinActualizar":"","obs":"","createdAt":"2026-04-24T00:00:00.000Z","updatedAt":"2026-04-24T00:00:00.000Z"},{"ref":"LEAD-008","origen":"Francisco","fuente":"Idealista","fecha":"2026-04-24","semana":"17","tipoActivo":"Local","operacion":"Venta","perfil":"Profesional","zona":"Finca el Pato - Torre del Río · Málaga","direccion":"Calle Hermanos Lumière, s/n","superficie":"676","precio":"400000","precioAnterior":"650000","preciom2":"592","nombre":"Cs Inmobiliaria","telefono":"851 81 30 54","email":"","estado":"Nuevo","enlace":"https://www.idealista.com/inmueble/110547416/","proximoContacto":"","prioridadCaptacion":"🟢 RECIENTE","fechaActualizacion":"Anuncio actualizado hace 8 días","diasSinActualizar":"","obs":"","createdAt":"2026-04-24T00:00:00.000Z","updatedAt":"2026-04-24T00:00:00.000Z"},{"ref":"LEAD-009","origen":"Francisco","fuente":"Idealista","fecha":"2026-04-24","semana":"17","tipoActivo":"Nave","operacion":"Venta","perfil":"Profesional","zona":"Polígonos - Recinto Ferial · Málaga","direccion":"Calle Sigfrido","superficie":"620","precio":"1100000","precioAnterior":"","preciom2":"1774","nombre":"Black Onyx by KellerWilliams","telefono":"851 81 33 68","email":"","estado":"Nuevo","enlace":"https://www.idealista.com/inmueble/111070216/","proximoContacto":"","prioridadCaptacion":"🟢 RECIENTE","fechaActualizacion":"Anuncio actualizado hace 10 días","diasSinActualizar":"","obs":"","createdAt":"2026-04-24T00:00:00.000Z","updatedAt":"2026-04-24T00:00:00.000Z"},{"ref":"LEAD-010","origen":"Francisco","fuente":"Idealista","fecha":"2026-04-24","semana":"17","tipoActivo":"Nave","operacion":"Venta","perfil":"Profesional","zona":"Vélez-Málaga","direccion":"Diseminado Huertas Bajas, Camino Viejo de Málaga","superficie":"530","precio":"550000","precioAnterior":"","preciom2":"1038","nombre":"Casa Axarquía Properties S.L.","telefono":"851 81 34 92","email":"","estado":"En seguimiento","enlace":"https://www.idealista.com/inmueble/110382126/","proximoContacto":"","prioridadCaptacion":"🟡 SEGUIMIENTO","fechaActualizacion":"Anuncio actualizado hace más de 0 meses","diasSinActualizar":"","obs":"","createdAt":"2026-04-24T00:00:00.000Z","updatedAt":"2026-04-24T00:00:00.000Z"},{"ref":"LEAD-011","origen":"Francisco","fuente":"Idealista","fecha":"2026-04-24","semana":"17","tipoActivo":"Nave","operacion":"Venta","perfil":"Particular","zona":"Polígonos - Recinto Ferial · Málaga","direccion":"Calle Leopoldo Lugones, 16","superficie":"2096","precio":"3000000","precioAnterior":"","preciom2":"1431","nombre":"Daniel Liñán","telefono":"616 98 55 60","email":"","estado":"Nuevo","enlace":"https://www.idealista.com/inmueble/110887011/","proximoContacto":"","prioridadCaptacion":"🟢 RECIENTE","fechaActualizacion":"Anuncio actualizado hace 10 días","diasSinActualizar":"","obs":"","createdAt":"2026-04-24T00:00:00.000Z","updatedAt":"2026-04-24T00:00:00.000Z"},{"ref":"LEAD-012","origen":"Francisco","fuente":"Idealista","fecha":"2026-04-24","semana":"17","tipoActivo":"Local","operacion":"Venta","perfil":"Profesional","zona":"Perchel sur - El Bulto · Málaga","direccion":"Calle Héroe de Sostoa","superficie":"790","precio":"745000","precioAnterior":"","preciom2":"943","nombre":"Huspy Málaga","telefono":"951 12 10 87","email":"","estado":"En seguimiento","enlace":"https://www.idealista.com/inmueble/110881901/","proximoContacto":"","prioridadCaptacion":"🟡 SEGUIMIENTO","fechaActualizacion":"Anuncio actualizado hace más de un mes","diasSinActualizar":"","obs":"","createdAt":"2026-04-24T00:00:00.000Z","updatedAt":"2026-04-24T00:00:00.000Z"},{"ref":"LEAD-013","origen":"Francisco","fuente":"Idealista","fecha":"2026-04-24","semana":"17","tipoActivo":"Local","operacion":"Venta","perfil":"Profesional","zona":"Finca el Pato - Torre del Río · Málaga","direccion":"Polígono Santa Barbara","superficie":"1260","precio":"3900000","precioAnterior":"","preciom2":"3095","nombre":"Dobra Home","telefono":"951 12 52 16","email":"","estado":"En seguimiento","enlace":"https://www.idealista.com/inmueble/105898430/","proximoContacto":"","prioridadCaptacion":"🟡 SEGUIMIENTO","fechaActualizacion":"Anuncio actualizado hace más de un mes","diasSinActualizar":"","obs":"","createdAt":"2026-04-24T00:00:00.000Z","updatedAt":"2026-04-24T00:00:00.000Z"},{"ref":"LEAD-014","origen":"Francisco","fuente":"Idealista","fecha":"2026-04-24","semana":"17","tipoActivo":"Nave","operacion":"Venta","perfil":"Particular","zona":"San Alberto - La Alcubilla - Florisol · Málaga","direccion":"Calle Pisuerga, s/n","superficie":"600","precio":"800000","precioAnterior":"","preciom2":"1333","nombre":"Ángela","telefono":"646 58 40 56","email":"","estado":"Nuevo","enlace":"https://www.idealista.com/inmueble/110726114/","proximoContacto":"","prioridadCaptacion":"🟢 RECIENTE","fechaActualizacion":"Anuncio actualizado hace 21 días","diasSinActualizar":"","obs":"","createdAt":"2026-04-24T00:00:00.000Z","updatedAt":"2026-04-24T00:00:00.000Z"},{"ref":"LEAD-015","origen":"Francisco","fuente":"Idealista","fecha":"2026-04-24","semana":"17","tipoActivo":"Local","operacion":"Venta","perfil":"Profesional","zona":"Huelin · Málaga","direccion":"Calle Fernán Núñez","superficie":"630","precio":"1700000","precioAnterior":"","preciom2":"2698","nombre":"Norando Homes","telefono":"851 81 31 13","email":"","estado":"Nuevo","enlace":"https://www.idealista.com/inmueble/110688948/","proximoContacto":"","prioridadCaptacion":"🟢 RECIENTE","fechaActualizacion":"Anuncio actualizado hace 22 horas","diasSinActualizar":"","obs":"","createdAt":"2026-04-24T00:00:00.000Z","updatedAt":"2026-04-24T00:00:00.000Z"},{"ref":"LEAD-016","origen":"Francisco","fuente":"Idealista","fecha":"2026-04-24","semana":"17","tipoActivo":"Nave","operacion":"Venta","perfil":"Profesional","zona":"Polígonos - Recinto Ferial · Málaga","direccion":"Polígonos - Recinto Ferial","superficie":"810","precio":"935000","precioAnterior":"","preciom2":"1154","nombre":"Alfredo Fernández","telefono":"951 12 44 82","email":"","estado":"En seguimiento","enlace":"https://www.idealista.com/inmueble/110598536/","proximoContacto":"","prioridadCaptacion":"🟡 SEGUIMIENTO","fechaActualizacion":"Anuncio actualizado hace más de 2 meses","diasSinActualizar":"","obs":"","createdAt":"2026-04-24T00:00:00.000Z","updatedAt":"2026-04-24T00:00:00.000Z"},{"ref":"LEAD-017","origen":"Francisco","fuente":"Idealista","fecha":"2026-04-24","semana":"17","tipoActivo":"Local","operacion":"Venta","perfil":"Profesional","zona":"El Palo · Málaga","direccion":"El Palo","superficie":"600","precio":"3000000","precioAnterior":"","preciom2":"5000","nombre":"Inmo Olaya","telefono":"936 17 21 14","email":"","estado":"En seguimiento","enlace":"https://www.idealista.com/inmueble/110548322/","proximoContacto":"","prioridadCaptacion":"🟡 SEGUIMIENTO","fechaActualizacion":"Anuncio actualizado hace más de 2 meses","diasSinActualizar":"","obs":"","createdAt":"2026-04-24T00:00:00.000Z","updatedAt":"2026-04-24T00:00:00.000Z"},{"ref":"LEAD-018","origen":"Francisco","fuente":"Idealista","fecha":"2026-04-24","semana":"17","tipoActivo":"Nave","operacion":"Venta","perfil":"Profesional","zona":"Polígonos - Recinto Ferial · Málaga","direccion":"Polígonos - Recinto Ferial","superficie":"560","precio":"720000","precioAnterior":"","preciom2":"1286","nombre":"Alfredo Fernández","telefono":"951 12 44 82","email":"","estado":"En seguimiento","enlace":"https://www.idealista.com/inmueble/110537039/","proximoContacto":"","prioridadCaptacion":"🟡 SEGUIMIENTO","fechaActualizacion":"Anuncio actualizado hace más de 2 meses","diasSinActualizar":"","obs":"","createdAt":"2026-04-24T00:00:00.000Z","updatedAt":"2026-04-24T00:00:00.000Z"},{"ref":"LEAD-019","origen":"Francisco","fuente":"Idealista","fecha":"2026-04-24","semana":"17","tipoActivo":"Nave","operacion":"Venta","perfil":"Particular","zona":"Polígonos - Recinto Ferial · Málaga","direccion":"Calle Rosa de los Vientos, 37","superficie":"1800","precio":"1800000","precioAnterior":"","preciom2":"1000","nombre":"Jose Antonio Cortes","telefono":"653 66 17 26","email":"","estado":"Nuevo","enlace":"https://www.idealista.com/inmueble/110511543/","proximoContacto":"","prioridadCaptacion":"🟢 RECIENTE","fechaActualizacion":"Anuncio actualizado hace 18 días","diasSinActualizar":"","obs":"","createdAt":"2026-04-24T00:00:00.000Z","updatedAt":"2026-04-24T00:00:00.000Z"},{"ref":"LEAD-020","origen":"Francisco","fuente":"Idealista","fecha":"2026-04-24","semana":"17","tipoActivo":"Nave","operacion":"Venta","perfil":"Profesional","zona":"Málaga","direccion":"Campanillas","superficie":"766","precio":"800000","precioAnterior":"","preciom2":"1044","nombre":"Inmobiliaria Barin Málaga","telefono":"952 06 24 12","email":"","estado":"Nuevo","enlace":"https://www.idealista.com/inmueble/110466644/","proximoContacto":"","prioridadCaptacion":"🟢 RECIENTE","fechaActualizacion":"Anuncio actualizado hace un día","diasSinActualizar":"","obs":"","createdAt":"2026-04-24T00:00:00.000Z","updatedAt":"2026-04-24T00:00:00.000Z"},{"ref":"LEAD-021","origen":"Francisco","fuente":"Idealista","fecha":"2026-04-24","semana":"17","tipoActivo":"Nave","operacion":"Venta","perfil":"Profesional","zona":"Polígonos - Recinto Ferial · Málaga","direccion":"Polígonos - Recinto Ferial","superficie":"510","precio":"620000","precioAnterior":"","preciom2":"1216","nombre":"Inmobiliaria Area Del Sol","telefono":"951 12 10 72","email":"","estado":"Nuevo","enlace":"https://www.idealista.com/inmueble/110397449/","proximoContacto":"","prioridadCaptacion":"🟢 RECIENTE","fechaActualizacion":"Anuncio actualizado hace 15 días","diasSinActualizar":"","obs":"","createdAt":"2026-04-24T00:00:00.000Z","updatedAt":"2026-04-24T00:00:00.000Z"},{"ref":"LEAD-022","origen":"Francisco","fuente":"Idealista","fecha":"2026-04-24","semana":"17","tipoActivo":"Nave","operacion":"Venta","perfil":"Profesional","zona":"Polígonos - Recinto Ferial · Málaga","direccion":"Calle del Alcalde Guillermo Rein, 24","superficie":"1700","precio":"1700000","precioAnterior":"","preciom2":"1000","nombre":"Pemarq / Rafael Pereira Marqués","telefono":"851 81 00 99","email":"","estado":"En seguimiento","enlace":"https://www.idealista.com/inmueble/107936043/","proximoContacto":"","prioridadCaptacion":"🟡 SEGUIMIENTO","fechaActualizacion":"Anuncio actualizado hace más de un mes","diasSinActualizar":"","obs":"","createdAt":"2026-04-24T00:00:00.000Z","updatedAt":"2026-04-24T00:00:00.000Z"},{"ref":"LEAD-023","origen":"Francisco","fuente":"Idealista","fecha":"2026-04-24","semana":"17","tipoActivo":"Local","operacion":"Venta","perfil":"Profesional","zona":"Santa Cristina - San Rafael · Málaga","direccion":"Camino de San Rafael, 121","superficie":"518","precio":"1295175","precioAnterior":"","preciom2":"2500","nombre":"Interiorismocym","telefono":"951 12 18 37","email":"","estado":"Nuevo","enlace":"https://www.idealista.com/inmueble/110250758/","proximoContacto":"","prioridadCaptacion":"🟢 RECIENTE","fechaActualizacion":"Anuncio actualizado hace 17 días","diasSinActualizar":"","obs":"","createdAt":"2026-04-24T00:00:00.000Z","updatedAt":"2026-04-24T00:00:00.000Z"},{"ref":"LEAD-024","origen":"Francisco","fuente":"Idealista","fecha":"2026-04-24","semana":"17","tipoActivo":"Nave","operacion":"Venta","perfil":"Profesional","zona":"Polígonos - Recinto Ferial · Málaga","direccion":"Calle Esteban Salazar Chapela, 16","superficie":"526","precio":"435000","precioAnterior":"","preciom2":"827","nombre":"Navesmalaga","telefono":"951 12 48 90","email":"","estado":"En seguimiento","enlace":"https://www.idealista.com/inmueble/110167442/","proximoContacto":"","prioridadCaptacion":"🟡 SEGUIMIENTO","fechaActualizacion":"Anuncio actualizado hace más de 2 meses","diasSinActualizar":"","obs":"","createdAt":"2026-04-24T00:00:00.000Z","updatedAt":"2026-04-24T00:00:00.000Z"},{"ref":"LEAD-025","origen":"Francisco","fuente":"Idealista","fecha":"2026-04-24","semana":"17","tipoActivo":"Nave","operacion":"Venta","perfil":"Particular","zona":"Campanillas · Málaga","direccion":"Calle Rosalind Franklin, 12","superficie":"660","precio":"750000","precioAnterior":"","preciom2":"1136","nombre":"Jonathan","telefono":"636 02 69 48","email":"","estado":"En seguimiento","enlace":"https://www.idealista.com/inmueble/89453453/","proximoContacto":"","prioridadCaptacion":"🔴 PRIORITARIO","fechaActualizacion":"Anuncio actualizado hace más de 4 meses","diasSinActualizar":"","obs":"","createdAt":"2026-04-24T00:00:00.000Z","updatedAt":"2026-04-24T00:00:00.000Z"},{"ref":"LEAD-026","origen":"Francisco","fuente":"Idealista","fecha":"2026-04-24","semana":"17","tipoActivo":"Nave","operacion":"Venta","perfil":"Profesional","zona":"Málaga","direccion":"Campanillas","superficie":"630","precio":"819000","precioAnterior":"","preciom2":"1300","nombre":"Mario","telefono":"851 81 34 10","email":"","estado":"En seguimiento","enlace":"https://www.idealista.com/inmueble/110145505/","proximoContacto":"","prioridadCaptacion":"🟡 SEGUIMIENTO","fechaActualizacion":"Anuncio actualizado hace más de un mes","diasSinActualizar":"","obs":"","createdAt":"2026-04-24T00:00:00.000Z","updatedAt":"2026-04-24T00:00:00.000Z"},{"ref":"LEAD-027","origen":"Francisco","fuente":"Idealista","fecha":"2026-04-24","semana":"17","tipoActivo":"Local","operacion":"Venta","perfil":"Particular","zona":"Ciudad Jardín · Málaga","direccion":"Ma-3101, 275","superficie":"4150","precio":"695000","precioAnterior":"","preciom2":"167","nombre":"Francisco Fernandez","telefono":"667 54 17 90","email":"","estado":"Nuevo","enlace":"https://www.idealista.com/inmueble/108322221/","proximoContacto":"","prioridadCaptacion":"🟢 RECIENTE","fechaActualizacion":"Anuncio actualizado hace 24 días","diasSinActualizar":"","obs":"","createdAt":"2026-04-24T00:00:00.000Z","updatedAt":"2026-04-24T00:00:00.000Z"},{"ref":"LEAD-028","origen":"Francisco","fuente":"Idealista","fecha":"2026-04-24","semana":"17","tipoActivo":"Nave","operacion":"Venta","perfil":"Profesional","zona":"Vélez-Málaga","direccion":"Explanada Estación, Camino Viejo de Málaga","superficie":"1200","precio":"900000","precioAnterior":"","preciom2":"750","nombre":"Alberto Garcia Cabello","telefono":"851 81 06 52","email":"","estado":"En seguimiento","enlace":"https://www.idealista.com/inmueble/110083836/","proximoContacto":"","prioridadCaptacion":"🔴 PRIORITARIO","fechaActualizacion":"Anuncio actualizado hace más de 4 meses","diasSinActualizar":"","obs":"","createdAt":"2026-04-24T00:00:00.000Z","updatedAt":"2026-04-24T00:00:00.000Z"},{"ref":"LEAD-029","origen":"Francisco","fuente":"Idealista","fecha":"2026-04-24","semana":"17","tipoActivo":"Nave","operacion":"Venta","perfil":"Profesional","zona":"Polígonos - Recinto Ferial · Málaga","direccion":"Calle Polígono El Viso","superficie":"800","precio":"890000","precioAnterior":"900000","preciom2":"1112","nombre":"Área del Sol Inmobiliaria","telefono":"951 12 10 72","email":"","estado":"Nuevo","enlace":"https://www.idealista.com/inmueble/84228718/","proximoContacto":"","prioridadCaptacion":"🟢 RECIENTE","fechaActualizacion":"Anuncio actualizado hace 15 días","diasSinActualizar":"","obs":"","createdAt":"2026-04-24T00:00:00.000Z","updatedAt":"2026-04-24T00:00:00.000Z"},{"ref":"LEAD-030","origen":"Francisco","fuente":"Idealista","fecha":"2026-04-24","semana":"17","tipoActivo":"Nave","operacion":"Venta","perfil":"Particular","zona":"Polígonos - Recinto Ferial · Málaga","direccion":"Polígonos - Recinto Ferial","superficie":"800","precio":"850000","precioAnterior":"","preciom2":"1062","nombre":"JAIME","telefono":"672 20 26 68","email":"","estado":"Nuevo","enlace":"https://www.idealista.com/inmueble/106862487/","proximoContacto":"","prioridadCaptacion":"🟢 RECIENTE","fechaActualizacion":"Anuncio actualizado hace 4 días","diasSinActualizar":"","obs":"","createdAt":"2026-04-24T00:00:00.000Z","updatedAt":"2026-04-24T00:00:00.000Z"}], municipios:{Málaga:[],Granada:[]}, zonas:{} };
+const DEF = { naves:[], oficinas:[], locales:[], pisos:[], chalets:[], garajes:[], propietarios:[], clientes:[], leads:[], municipios:{Málaga:[],Granada:[]}, zonas:{} };
 let DB = {...DEF};
 
 // Clave única del documento en Supabase (una sola fila con toda la BD)
@@ -768,6 +767,18 @@ function openGlobalView(estado) {
   const cardsHTML = [...activos,...archivados].join('') || '<div class="empty-state">No hay propiedades en este estado</div>';
   const titulo = estado ? `Vista global · ${estado}` : 'Vista global · Todas las propiedades';
 
+  const searchBarHTML = estado === 'Captación' ? `
+    <div style="margin-bottom:14px;display:flex;gap:10px;align-items:center">
+      <div style="position:relative;flex:1;max-width:400px">
+        <span style="position:absolute;left:12px;top:50%;transform:translateY(-50%);font-size:15px;pointer-events:none">🔍</span>
+        <input id="captacion-search" type="text" placeholder="Buscar por nombre o teléfono del anunciante..."
+          oninput="filtrarCaptacion(this.value)"
+          style="width:100%;padding:9px 12px 9px 38px;border-radius:9px;border:1.5px solid var(--border);font-size:13px;font-family:inherit;background:#f8fafc;outline:none;transition:border-color 0.15s"
+          onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='var(--border)'">
+      </div>
+      <div id="captacion-count" style="font-size:12px;color:#94a3b8">${total} propiedad${total!==1?'es':''}</div>
+    </div>` : '';
+
   document.getElementById('content').innerHTML = `
     <div style="display:flex;align-items:center;gap:6px;margin-bottom:12px;font-size:12px;color:#94a3b8">
       <span onclick="doSwitchTab('__home__')" style="cursor:pointer;color:var(--teal);font-weight:700;display:flex;align-items:center;gap:4px;padding:4px 10px;background:#f0f9fc;border:1px solid #bde0ed;border-radius:20px;transition:background 0.15s" onmouseover="this.style.background='#e0f2f7'" onmouseout="this.style.background='#f0f9fc'">🏠 Inicio</span>
@@ -776,10 +787,37 @@ function openGlobalView(estado) {
     </div>
     <div style="margin-bottom:16px">
       <div style="font-size:18px;font-weight:800;color:#0f4c5c">${titulo}</div>
-      <div style="font-size:12px;color:#64748b">${total} propiedad${total!==1?'es':''} · todos los tipos</div>
+      ${estado !== 'Captación' ? `<div style="font-size:12px;color:#64748b">${total} propiedad${total!==1?'es':''} · todos los tipos</div>` : ''}
     </div>
-    <div>${cardsHTML}</div>`;
+    ${searchBarHTML}
+    <div id="captacion-cards">${cardsHTML}</div>`;
   currentTab = '__global__';
+}
+
+function filtrarCaptacion(q) {
+  const s = (q||'').toLowerCase().trim();
+  const TIPOS = ['naves','oficinas','locales','pisos','chalets'];
+  let allCards = [], total = 0;
+  TIPOS.forEach(t => {
+    const list = DB[t]||[];
+    list.forEach((a,i) => {
+      if(a.estadoComercial !== 'Captación') return;
+      const prop = DB.propietarios.find(p=>p.id===a.propietarioId);
+      // Buscar también en leadNombre y leadTelefono guardados en el activo
+      const nombre = ((prop?.nombre||'') + ' ' + (a.leadNombre||'')).toLowerCase();
+      const tel = (prop?.tel1||'') + ' ' + (prop?.tel2||'') + ' ' + (a.leadTelefono||'');
+      const matchSearch = !s || nombre.includes(s) || tel.includes(s) ||
+        (a.direccion||'').toLowerCase().includes(s) ||
+        (a.zona||'').toLowerCase().includes(s) ||
+        (a.ref||'').toLowerCase().includes(s);
+      if(matchSearch) { allCards.push(assetCardHTML(a,t,i)); total++; }
+    });
+  });
+  const cards = allCards.join('') || '<div class="empty-state">Sin resultados</div>';
+  const cardsEl = document.getElementById('captacion-cards');
+  const countEl = document.getElementById('captacion-count');
+  if(cardsEl) cardsEl.innerHTML = cards;
+  if(countEl) countEl.textContent = total + ' propiedad' + (total!==1?'es':'');
 }
 
 // ── MUNICIPIO / ZONA ─────────────────────────────────────────────────────────
@@ -1406,7 +1444,11 @@ function assetCardHTML(a, tipo, realIdx) {
        ${prop.tel1?`<a href="tel:${escH(prop.tel1)}" style="font-size:11px;color:#1a6678;font-weight:600;text-decoration:none;background:#e0f2f7;border-radius:5px;padding:1px 8px" onclick="event.stopPropagation()">📞 ${escH(prop.tel1)}</a>`:''}
        ${prop.tel2?`<a href="tel:${escH(prop.tel2)}" style="font-size:11px;color:#1a6678;font-weight:600;text-decoration:none;background:#e0f2f7;border-radius:5px;padding:1px 8px" onclick="event.stopPropagation()">📞 ${escH(prop.tel2)}</a>`:''}
      </div>`
-  : `<div style="margin-top:4px"><span onclick="openEdit(${realIdx},'${tipo}')" style="font-size:10px;color:#f97316;font-weight:700;cursor:pointer;background:#fff7ed;border:1px solid #fed7aa;border-radius:5px;padding:1px 9px" title="Vincular propietario">⚠️ Sin propietario · Vincular</span></div>`
+  : `<div style="margin-top:4px;display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+       ${a.leadNombre ? `<span style="font-size:11px;color:#0f4c5c;font-weight:700">👤 ${escH(a.leadNombre)}</span>` : ''}
+       ${a.leadTelefono ? `<a href="tel:${escH(a.leadTelefono)}" style="font-size:11px;color:#1a6678;font-weight:600;text-decoration:none;background:#e0f2f7;border-radius:5px;padding:1px 8px" onclick="event.stopPropagation()">📞 ${escH(a.leadTelefono)}</a>` : ''}
+       <span onclick="openEdit(${realIdx},'${tipo}')" style="font-size:10px;color:#f97316;font-weight:700;cursor:pointer;background:#fff7ed;border:1px solid #fed7aa;border-radius:5px;padding:1px 9px" title="Vincular propietario">⚠️ Vincular</span>
+     </div>`
 }
           ${a.fechaCaptacion?`<div style="font-size:11px;color:#94a3b8;margin-top:2px">📅 Captación: <span style="font-weight:600">${new Date(a.fechaCaptacion+'T00:00').toLocaleDateString('es-ES')}</span></div>`:''}
           ${a.fechaCierre?`<div style="font-size:11px;color:#1e293b;margin-top:2px">🔒 Cierre: <span style="font-weight:700">${new Date(a.fechaCierre+'T00:00').toLocaleDateString('es-ES')}</span></div>`:a.estadoComercial==='Firmado'?`<div style="font-size:10px;color:#f97316;margin-top:2px;font-weight:700">⚠️ Sin fecha de cierre</div>`:''}
@@ -3152,10 +3194,6 @@ let leadEditIdx = null;
 let leadFiltEstado = '';
 let leadFiltFuente = '';
 let leadFiltTipo = '';
-let leadFiltPerfil = '';
-let leadSubTab = 'leads';
-let leadFiltOperacion = '';
-let leadSortField = 'fechaActualizacion'; // default: más reciente primero
 
 function genLeadRef() {
   const leads = DB.leads || [];
@@ -3173,24 +3211,8 @@ function renderProspeccion() {
     if(leadFiltEstado && l.estado !== leadFiltEstado) return false;
     if(leadFiltFuente && l.fuente !== leadFiltFuente) return false;
     if(leadFiltTipo && l.tipoActivo !== leadFiltTipo) return false;
-    if(leadFiltPerfil === 'Particular' && !(l.perfil==='Particular' || l.perfil==='Propietario directo')) return false;
-    if(leadFiltPerfil === 'Profesional' && (l.perfil==='Particular' || l.perfil==='Propietario directo' || !l.perfil)) return false;
-    if(leadFiltOperacion && l.operacion !== leadFiltOperacion) return false;
     return true;
   });
-
-  // Sort: fechaActualizacion (text) → parse "hace X días/meses" → numeric; fallback by createdAt
-  function parseFechaAct(txt) {
-    if (!txt) return 99999;
-    const t = txt.toLowerCase();
-    const h = t.match(/hace\s+(\d+)\s+hora/);   if(h) return parseFloat(h[1]) / 24;
-    const d = t.match(/hace\s+(\d+)\s+d/);       if(d) return parseFloat(d[1]);
-    const m = t.match(/hace\s+m[aá]s\s+de\s+(\d+)\s+mes/); if(m) return parseFloat(m[1]) * 30;
-    if(t.includes('un día') || t.includes('un dia')) return 1;
-    if(t.includes('un mes')) return 30;
-    return 9999;
-  }
-  lista.sort((a, b) => parseFechaAct(a.fechaActualizacion) - parseFechaAct(b.fechaActualizacion));
 
   // Stats
   const total = leads.length;
@@ -3268,18 +3290,6 @@ function renderProspeccion() {
             <label style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px">Precio (€)</label>
             <input type="text" id="lf_precio" value="${escH(d.precio||'')}" placeholder="Ej: 180.000 / 1.200/mes" style="padding:8px 10px;border-radius:7px;border:1.5px solid var(--border);font-size:13px;font-family:inherit">
           </div>
-          <div style="display:flex;flex-direction:column;gap:3px">
-            <label style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px">Precio anterior (€)</label>
-            <input type="text" id="lf_precioAnterior" value="${escH(d.precioAnterior||'')}" placeholder="Precio original si ha bajado" style="padding:8px 10px;border-radius:7px;border:1.5px solid var(--border);font-size:13px;font-family:inherit">
-          </div>
-          <div style="display:flex;flex-direction:column;gap:3px">
-            <label style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px">€/m²</label>
-            <input type="text" id="lf_preciom2" value="${escH(d.preciom2||'')}" placeholder="€/m²" style="padding:8px 10px;border-radius:7px;border:1.5px solid var(--border);font-size:13px;font-family:inherit">
-          </div>
-          <div style="grid-column:span 3;display:flex;flex-direction:column;gap:3px">
-            <label style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px">Dirección</label>
-            <input type="text" id="lf_direccion" value="${escH(d.direccion||'')}" placeholder="Calle, número, polígono..." style="padding:8px 10px;border-radius:7px;border:1.5px solid var(--border);font-size:13px;font-family:inherit">
-          </div>
 
           <div style="grid-column:span 3;font-size:10px;font-weight:800;color:var(--teal);text-transform:uppercase;letter-spacing:0.5px;padding:6px 0 2px;border-bottom:1px solid var(--border);margin-top:8px">Contacto</div>
 
@@ -3307,20 +3317,6 @@ function renderProspeccion() {
           <div style="display:flex;flex-direction:column;gap:3px">
             <label style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px">Enlace al anuncio</label>
             <input type="url" id="lf_enlace" value="${escH(d.enlace||'')}" placeholder="https://..." style="padding:8px 10px;border-radius:7px;border:1.5px solid var(--border);font-size:13px;font-family:inherit">
-          </div>
-          <div style="display:flex;flex-direction:column;gap:3px">
-            <label style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px">Prioridad captación</label>
-            <select id="lf_prioridadCaptacion" style="padding:8px 10px;border-radius:7px;border:1.5px solid var(--border);font-size:13px;font-family:inherit;background:#f8fafc">
-              ${['','🔴 PRIORITARIO','🟡 SEGUIMIENTO','🟢 RECIENTE'].map(p=>`<option value="${escH(p)}"${p===(d.prioridadCaptacion||'')?' selected':''}>${escH(p)||'Sin asignar'}</option>`).join('')}
-            </select>
-          </div>
-          <div style="display:flex;flex-direction:column;gap:3px">
-            <label style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px">Días sin actualizar</label>
-            <input type="number" id="lf_diasSinActualizar" value="${escH(d.diasSinActualizar||'')}" placeholder="0" style="padding:8px 10px;border-radius:7px;border:1.5px solid var(--border);font-size:13px;font-family:inherit">
-          </div>
-          <div style="grid-column:span 3;display:flex;flex-direction:column;gap:3px">
-            <label style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px">Fecha actualización anuncio</label>
-            <input type="text" id="lf_fechaActualizacion" value="${escH(d.fechaActualizacion||'')}" placeholder="Ej: Anuncio actualizado hace 3 días" style="padding:8px 10px;border-radius:7px;border:1.5px solid var(--border);font-size:13px;font-family:inherit">
           </div>
           <div style="display:flex;flex-direction:column;gap:3px">
             <label style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px">Fecha próximo contacto</label>
@@ -3353,14 +3349,8 @@ function renderProspeccion() {
       <span style="color:#c2410c;font-weight:700;font-size:13px">🔍 Prospección · ${total} leads</span>
     </div>
 
-    <!-- Sub-tabs -->
-    <div style="display:flex;gap:0;border-bottom:2px solid var(--border);margin-bottom:20px">
-      <button onclick="leadSubTab='leads';renderProspeccion()" style="padding:9px 20px;border:none;border-bottom:${leadSubTab!=='guia'?'3px solid var(--teal)':'3px solid transparent'};background:none;font-size:13px;font-weight:${leadSubTab!=='guia'?'700':'500'};color:${leadSubTab!=='guia'?'var(--teal)':'var(--muted)'};cursor:pointer;font-family:inherit;margin-bottom:-2px">📋 Leads</button>
-      <button onclick="leadSubTab='guia';renderProspeccion()" style="padding:9px 20px;border:none;border-bottom:${leadSubTab==='guia'?'3px solid var(--teal)':'3px solid transparent'};background:none;font-size:13px;font-weight:${leadSubTab==='guia'?'700':'500'};color:${leadSubTab==='guia'?'var(--teal)':'var(--muted)'};cursor:pointer;font-family:inherit;margin-bottom:-2px">💡 Guía de captación</button>
-    </div>
-
     <!-- Stats -->
-    <div id="leads-content-area" style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px">
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px">
       <div style="background:#fff;border-radius:12px;border:1px solid var(--border);padding:16px 18px;box-shadow:var(--shadow)">
         <div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px">Total leads</div>
         <div style="font-size:28px;font-weight:800;color:var(--teal)">${total}</div>
@@ -3383,10 +3373,6 @@ function renderProspeccion() {
     <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:16px">
       <button onclick="abrirNuevoLead()" style="padding:9px 18px;border-radius:8px;border:none;background:var(--teal);color:#fff;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;display:flex;align-items:center;gap:6px">➕ Nuevo lead</button>
       <button onclick="exportarLeadsCSV()" style="padding:9px 16px;border-radius:8px;border:1.5px solid var(--border);background:#fff;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;color:var(--teal)">⬇ Exportar CSV</button>
-      <label style="padding:9px 16px;border-radius:8px;border:1.5px solid #fed7aa;background:#fff7ed;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;color:#c2410c;display:flex;align-items:center;gap:6px">
-        📥 Importar Excel
-        <input type="file" accept=".xlsx,.xls" onchange="importarExcel(this)" style="display:none">
-      </label>
       <div style="flex:1;min-width:160px">
         <select onchange="leadFiltEstado=this.value;renderProspeccion()" style="width:100%;padding:8px 10px;border-radius:8px;border:1.5px solid var(--border);font-size:13px;font-family:inherit;background:#f8fafc">
           <option value="">Todos los estados</option>
@@ -3405,21 +3391,6 @@ function renderProspeccion() {
           ${LEAD_TIPOS.map(t=>`<option value="${escH(t)}"${t===leadFiltTipo?' selected':''}>${escH(t)}</option>`).join('')}
         </select>
       </div>
-      <div style="flex:1;min-width:160px">
-        <select onchange="leadFiltPerfil=this.value;renderProspeccion()" style="width:100%;padding:8px 10px;border-radius:8px;border:1.5px solid var(--border);font-size:13px;font-family:inherit;background:#f8fafc">
-          <option value="">Particular y profesional</option>
-          <option value="Particular"${leadFiltPerfil==='Particular'?' selected':''}>👤 Solo particulares</option>
-          <option value="Profesional"${leadFiltPerfil==='Profesional'?' selected':''}>🏢 Solo profesionales</option>
-        </select>
-      </div>
-      <div style="flex:1;min-width:160px">
-        <select onchange="leadFiltOperacion=this.value;renderProspeccion()" style="width:100%;padding:8px 10px;border-radius:8px;border:1.5px solid var(--border);font-size:13px;font-family:inherit;background:#f8fafc">
-          <option value="">Venta y alquiler</option>
-          <option value="Venta"${leadFiltOperacion==='Venta'?' selected':''}>💶 Solo venta</option>
-          <option value="Alquiler"${leadFiltOperacion==='Alquiler'?' selected':''}>🔑 Solo alquiler</option>
-          <option value="Ambos"${leadFiltOperacion==='Ambos'?' selected':''}>↔ Ambos</option>
-        </select>
-      </div>
     </div>
 
     <!-- Lista de leads -->
@@ -3435,7 +3406,7 @@ function renderProspeccion() {
         const estColor = LEAD_EST_COLOR[l.estado] || '#94a3b8';
         const hoy = new Date().toISOString().slice(0,10);
         const vencido = l.proximoContacto && l.proximoContacto < hoy && l.estado !== 'Descartado' && l.estado !== 'Convertido a captación';
-        return `<div style="background:#fff;border-radius:12px;border:1px solid ${vencido?'#fca5a5':estColor+'44'};padding:16px 20px;box-shadow:var(--shadow);display:grid;grid-template-columns:auto 1fr auto;gap:16px;align-items:center;cursor:pointer;transition:box-shadow 0.15s" onclick="verDetalleLead(${realIdx},event)" onmouseover="this.style.boxShadow='0 4px 18px rgba(0,0,0,0.10)'" onmouseout="this.style.boxShadow='var(--shadow)'">
+        return `<div style="background:#fff;border-radius:12px;border:1px solid ${vencido?'#fca5a5':estColor+'44'};padding:16px 20px;box-shadow:var(--shadow);display:grid;grid-template-columns:auto 1fr auto;gap:16px;align-items:center">
           <div style="display:flex;flex-direction:column;align-items:center;gap:4px">
             <span style="background:${estColor};color:#fff;font-size:10px;font-weight:700;padding:3px 8px;border-radius:20px;white-space:nowrap">${escH(l.estado||'Nuevo')}</span>
             <span style="font-size:10px;color:var(--muted);font-family:monospace">${escH(l.ref||'')}</span>
@@ -3457,14 +3428,6 @@ function renderProspeccion() {
               ${l.fecha ? `<span>📅 ${escH(l.fecha)}</span>` : ''}
               ${renderFechaBadge(vencido, l.proximoContacto)}
             </div>
-            ${l.direccion ? `<div style="font-size:12px;color:#64748b;margin-top:3px">📍 ${escH(l.direccion)}</div>` : ''}
-            <div style="font-size:11px;color:var(--muted);display:flex;gap:10px;flex-wrap:wrap;margin-top:3px">
-              ${l.precioAnterior ? `<span style="text-decoration:line-through;color:#f87171">€${Number(l.precioAnterior).toLocaleString('es-ES')}</span>` : ''}
-              ${l.preciom2 ? `<span>€/m²: ${escH(l.preciom2)}</span>` : ''}
-              ${l.prioridadCaptacion ? `<span style="font-weight:700">${escH(l.prioridadCaptacion)}</span>` : ''}
-              ${l.diasSinActualizar ? `<span>⏱ ${escH(l.diasSinActualizar)} días sin actualizar</span>` : ''}
-              ${l.fechaActualizacion ? `<span style="color:#94a3b8">${escH(l.fechaActualizacion)}</span>` : ''}
-            </div>
             ${l.obs ? `<div style="font-size:12px;color:var(--muted);margin-top:4px;font-style:italic">${escH(l.obs)}</div>` : ''}
           </div>
           <div style="display:flex;flex-direction:column;gap:6px;align-items:flex-end">
@@ -3476,17 +3439,6 @@ function renderProspeccion() {
       }).join('')}
     </div>`}
   </div>`;
-  // Sub-tab: show guia and hide leads content
-  if (leadSubTab === 'guia') {
-    const leadsBlock = area.querySelector('#leads-content-area');
-    if (leadsBlock) {
-      const guiaDiv = document.createElement('div');
-      guiaDiv.innerHTML = renderGuiaCaptacion();
-      leadsBlock.parentNode.insertBefore(guiaDiv.firstElementChild, leadsBlock);
-      let el = leadsBlock;
-      while (el) { const nxt = el.nextElementSibling; el.style.display = 'none'; el = nxt; }
-    }
-  }
 }
 
 function getWeekLabel() {
@@ -3500,94 +3452,6 @@ function abrirNuevoLead() {
   leadFormOpen = true;
   leadEditIdx = null;
   renderProspeccion();
-}
-
-function verDetalleLead(idx, event) {
-  // Don't open detail if clicking a button/link inside the card
-  if(event && (event.target.tagName === 'BUTTON' || event.target.tagName === 'A' || event.target.closest('button') || event.target.closest('a'))) return;
-  const l = DB.leads[idx];
-  if(!l) return;
-  const area = document.getElementById('content');
-  const estColor = LEAD_EST_COLOR[l.estado] || '#94a3b8';
-  const hoy = new Date().toISOString().slice(0,10);
-  const vencido = l.proximoContacto && l.proximoContacto < hoy && l.estado !== 'Descartado' && l.estado !== 'Convertido a captación';
-
-  area.innerHTML = `
-  <div style="max-width:860px;margin:0 auto;padding:20px 16px">
-    <div style="display:flex;align-items:center;gap:12px;margin-bottom:20px">
-      <span onclick="doSwitchTab('__home__')" style="cursor:pointer;color:var(--teal);font-weight:700;padding:4px 10px;background:#f0f9fc;border:1px solid #bde0ed;border-radius:20px;font-size:13px">🏠 Inicio</span>
-      <span style="color:#94a3b8">›</span>
-      <span onclick="doSwitchTab('prospeccion')" style="cursor:pointer;color:var(--teal);font-weight:700;padding:4px 10px;background:#fff7ed;border:1px solid #fed7aa;border-radius:20px;font-size:13px">🔍 Prospección</span>
-      <span style="color:#94a3b8">›</span>
-      <span style="color:#c2410c;font-weight:700;font-size:13px">${escH(l.ref||'')}</span>
-    </div>
-
-    <div style="background:#fff;border-radius:14px;border:1px solid var(--border);padding:28px 24px;box-shadow:var(--shadow)">
-
-      <!-- Header -->
-      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:20px;flex-wrap:wrap;gap:12px">
-        <div>
-          <div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:6px">${escH(l.ref||'')}</div>
-          <div style="font-size:22px;font-weight:800;color:var(--teal);margin-bottom:6px">${escH(l.tipoActivo||'—')} · ${escH(l.zona||'Sin zona')}</div>
-          <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
-            <span style="background:${estColor};color:#fff;font-size:11px;font-weight:700;padding:3px 10px;border-radius:20px">${escH(l.estado||'Nuevo')}</span>
-            ${l.prioridadCaptacion ? `<span style="font-size:11px;font-weight:700">${escH(l.prioridadCaptacion)}</span>` : ''}
-            ${renderOrigenBadge(l.origen||'Laura')}
-          </div>
-        </div>
-        <div style="display:flex;gap:8px;flex-shrink:0">
-          <button onclick="editarLead(${idx})" style="padding:9px 18px;border-radius:8px;border:1.5px solid var(--border);background:#f8fafc;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;color:var(--teal)">✏️ Editar</button>
-          ${l.estado !== 'Convertido a captación' && l.estado !== 'Descartado' ? `<button onclick="convertirACaptacion(${idx})" style="padding:9px 18px;border-radius:8px;border:none;background:#10b981;color:#fff;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit">✅ Captar</button>` : ''}
-        </div>
-      </div>
-
-      <!-- Grid de datos -->
-      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:20px">
-
-        <div style="background:#f8fafc;border-radius:10px;padding:14px">
-          <div style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px">Activo</div>
-          ${l.tipoActivo ? `<div style="font-size:12px;margin-bottom:4px"><span style="color:var(--muted)">Tipo:</span> <strong>${escH(l.tipoActivo)}</strong></div>` : ''}
-          ${l.operacion ? `<div style="font-size:12px;margin-bottom:4px"><span style="color:var(--muted)">Operación:</span> <strong>${escH(l.operacion)}</strong></div>` : ''}
-          ${l.superficie ? `<div style="font-size:12px;margin-bottom:4px"><span style="color:var(--muted)">Superficie:</span> <strong>${escH(l.superficie)} m²</strong></div>` : ''}
-          ${l.precio ? `<div style="font-size:12px;margin-bottom:4px"><span style="color:var(--muted)">Precio:</span> <strong style="color:var(--teal)">€${Number(l.precio).toLocaleString('es-ES')}</strong></div>` : ''}
-          ${l.precioAnterior ? `<div style="font-size:12px;margin-bottom:4px"><span style="color:var(--muted)">Precio ant.:</span> <strong style="text-decoration:line-through;color:#f87171">€${Number(l.precioAnterior).toLocaleString('es-ES')}</strong></div>` : ''}
-          ${l.preciom2 ? `<div style="font-size:12px;margin-bottom:4px"><span style="color:var(--muted)">€/m²:</span> <strong>${escH(l.preciom2)}</strong></div>` : ''}
-        </div>
-
-        <div style="background:#f8fafc;border-radius:10px;padding:14px">
-          <div style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px">Ubicación</div>
-          ${l.zona ? `<div style="font-size:12px;margin-bottom:4px"><span style="color:var(--muted)">Zona:</span> <strong>${escH(l.zona)}</strong></div>` : ''}
-          ${l.direccion ? `<div style="font-size:12px;margin-bottom:4px"><span style="color:var(--muted)">Dirección:</span> <strong>${escH(l.direccion)}</strong></div>` : ''}
-          ${l.fuente ? `<div style="font-size:12px;margin-bottom:4px"><span style="color:var(--muted)">Fuente:</span> <strong>${escH(l.fuente)}</strong></div>` : ''}
-          ${l.enlace ? `<div style="margin-top:8px"><a href="${escH(l.enlace)}" target="_blank" style="display:inline-flex;align-items:center;gap:5px;background:#f0f9fc;border:1px solid #bde0ed;border-radius:6px;padding:5px 12px;font-size:12px;font-weight:700;color:var(--teal);text-decoration:none">🔗 Ver anuncio</a></div>` : ''}
-        </div>
-
-        <div style="background:#f8fafc;border-radius:10px;padding:14px">
-          <div style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px">Contacto</div>
-          ${l.nombre ? `<div style="font-size:13px;font-weight:700;color:var(--teal);margin-bottom:6px">${escH(l.nombre)}</div>` : ''}
-          ${l.perfil ? `<div style="font-size:11px;font-weight:700;color:${l.perfil==='Particular'||l.perfil==='Propietario directo'?'#10b981':'#f59e0b'};margin-bottom:6px">${escH(l.perfil)}</div>` : ''}
-          ${l.telefono ? `<a href="tel:${escH(l.telefono)}" style="display:inline-flex;align-items:center;gap:6px;background:#e0f2f7;border-radius:6px;padding:6px 12px;font-size:13px;font-weight:700;color:var(--teal);text-decoration:none;margin-bottom:4px">📞 ${escH(l.telefono)}</a>` : ''}
-          ${l.email ? `<div style="font-size:12px;color:var(--muted);margin-top:4px">✉️ ${escH(l.email)}</div>` : ''}
-        </div>
-
-      </div>
-
-      <!-- Seguimiento -->
-      <div style="background:${vencido?'#fff1f2':'#f0f9fc'};border:1px solid ${vencido?'#fca5a5':'#bde0ed'};border-radius:10px;padding:14px 18px;margin-bottom:16px">
-        <div style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px">Seguimiento</div>
-        <div style="display:flex;gap:20px;flex-wrap:wrap;font-size:12px">
-          ${l.fecha ? `<span><span style="color:var(--muted)">Detectado:</span> <strong>${escH(l.fecha)}</strong></span>` : ''}
-          ${l.fechaActualizacion ? `<span><span style="color:var(--muted)">Última act. anuncio:</span> <strong>${escH(l.fechaActualizacion)}</strong></span>` : ''}
-          ${l.proximoContacto ? `<span style="color:${vencido?'#ef4444':'#3b82f6'}"><strong>${vencido?'⚠️ Vencido':'⏰ Próx. contacto'}: ${escH(l.proximoContacto)}</strong></span>` : ''}
-          ${l.diasSinActualizar ? `<span><span style="color:var(--muted)">Sin actualizar:</span> <strong>${escH(l.diasSinActualizar)} días</strong></span>` : ''}
-        </div>
-      </div>
-
-      <!-- Observaciones -->
-      ${l.obs ? `<div style="background:#fffbeb;border:1px solid #fde68a;border-radius:8px;padding:12px 16px;font-size:13px;color:#78350f;font-style:italic">${escH(l.obs)}</div>` : ''}
-
-    </div>
-  </div>`;
 }
 
 function editarLead(idx) {
@@ -3623,12 +3487,6 @@ function guardarLead() {
     enlace: document.getElementById('lf_enlace').value,
     proximoContacto: document.getElementById('lf_proximoContacto').value,
     obs: document.getElementById('lf_obs').value,
-    direccion: document.getElementById('lf_direccion').value,
-    precioAnterior: document.getElementById('lf_precioAnterior').value,
-    preciom2: document.getElementById('lf_preciom2').value,
-    prioridadCaptacion: document.getElementById('lf_prioridadCaptacion').value,
-    fechaActualizacion: document.getElementById('lf_fechaActualizacion').value,
-    diasSinActualizar: document.getElementById('lf_diasSinActualizar').value,
     updatedAt: new Date().toISOString()
   };
   if(leadEditIdx !== null) {
@@ -3658,16 +3516,14 @@ function convertirACaptacion(idx) {
   DB.leads[idx].estado = 'Convertido a captación';
   DB.leads[idx].convertidoAt = new Date().toISOString();
 
-  // Crear propietario si hay nombre o teléfono en el lead
+  // Crear propietario automáticamente si hay nombre o teléfono
   let propietarioId = '';
   if(l.nombre || l.telefono) {
-    // Comprobar si ya existe un propietario con ese teléfono
     const telNorm = (l.telefono||'').replace(/[\s\-]/g,'');
     const existing = telNorm ? (DB.propietarios||[]).find(p =>
       (p.tel1||'').replace(/[\s\-]/g,'') === telNorm ||
       (p.tel2||'').replace(/[\s\-]/g,'') === telNorm
     ) : null;
-
     if(existing) {
       propietarioId = existing.id;
     } else {
@@ -3678,8 +3534,8 @@ function convertirACaptacion(idx) {
         tel1: l.telefono || '',
         tel2: '', tel3: '',
         email: l.email || '',
-        origen: `Prospección · ${l.fuente||''} (${l.ref})`,
-        observaciones: l.perfil ? `Perfil: ${l.perfil}` : ''
+        origen: 'Prospección · ' + (l.fuente||'') + ' (' + l.ref + ')',
+        observaciones: (l.perfil ? 'Perfil: ' + l.perfil : '') + (l.prioridadCaptacion ? ' · ' + l.prioridadCaptacion : '')
       };
       if(!DB.propietarios) DB.propietarios = [];
       DB.propietarios.push(prop);
@@ -3691,313 +3547,66 @@ function convertirACaptacion(idx) {
   const tipoMap = {'Local comercial':'locales','Nave industrial':'naves','Oficina':'oficinas'};
   const tipo = tipoMap[l.tipoActivo] || 'locales';
 
-  // Crear activo con todos los datos del lead
+  // Extraer precio limpio (solo dígitos)
+  const precioLimpio = (l.precio||'').replace(/[^\d]/g,'');
+
+  // Crear activo con TODOS los datos del lead
   const nuevo = {
     ref: genRef(tipo),
-    municipio: l.zona || '',
     provincia: 'Málaga',
+    municipio: l.zona ? l.zona.split('·')[l.zona.split('·').length-1].trim() : '',
+    zona: l.zona || '',
     direccion: l.direccion || '',
     tipoOperacion: l.operacion || 'Venta',
-    precioVenta: l.operacion === 'Venta' ? (l.precio||'').replace(/[^\d]/g,'') : '',
-    precioAlquiler: l.operacion === 'Alquiler' ? (l.precio||'').replace(/[^\d]/g,'') : '',
+    precioVenta: (l.operacion === 'Venta' || l.operacion === 'Ambos') ? precioLimpio : '',
+    precioAlquiler: (l.operacion === 'Alquiler' || l.operacion === 'Ambos') ? precioLimpio : '',
     superficie: l.superficie || '',
     estadoContacto: 'Primer contacto',
     estadoComercial: 'Captación',
     documentacion: 'Pendiente',
     exclusiva: 'No',
     propietarioId,
-    observaciones: `Lead procedente de ${l.fuente||'prospección'} (${l.ref}).${l.obs?' '+l.obs:''}`.trim(),
     enlaceWeb: l.enlace || '',
+    refCatastral: '',
+    observaciones: [
+      'Lead: ' + l.ref + ' · ' + (l.fuente||''),
+      l.prioridadCaptacion || '',
+      l.fechaActualizacion || '',
+      l.obs || ''
+    ].filter(Boolean).join(' · '),
+    honorariosTipo: 'porcentaje',
+    honorariosPct: '',
     fechaCaptacion: new Date().toISOString().slice(0,10),
+    leadOrigen: l.ref,
+    leadNombre: l.nombre || '',
+    leadTelefono: l.telefono || '',
+    leadPerfil: l.perfil || '',
+    leadPrecioAnterior: l.precioAnterior || '',
+    leadPreciom2: l.preciom2 || '',
     createdAt: new Date().toISOString()
   };
+
+  // Añadir campos específicos del tipo de activo
+  if(tipo === 'naves') nuevo.superficieTotal = l.superficie || '';
+  if(tipo === 'locales') nuevo.superficie = l.superficie || '';
+  if(tipo === 'oficinas') nuevo.superficie = l.superficie || '';
 
   if(!DB[tipo]) DB[tipo] = [];
   DB[tipo].unshift(nuevo);
   saveDB();
 
   const propMsg = propietarioId
-    ? `\nPropietario "${l.nombre||l.telefono}" creado y vinculado.`
+    ? '\nPropietario "' + (l.nombre||l.telefono) + '" creado y vinculado.'
     : '\n⚠️ Sin nombre ni teléfono — propietario no creado.';
-  alert(`✅ Lead convertido. Activo ${nuevo.ref} creado en ${tipo.charAt(0).toUpperCase()+tipo.slice(1)}.${propMsg}`);
-  doSwitchTab(tipo);
-}
-
-function importarExcel(input) {
-  const file = input.files[0];
-  if (!file) return;
-  const reader = new FileReader();
-  reader.onload = function(e) {
-    try {
-      const wb = XLSX.read(e.target.result, {type:'array'});
-      const ws = wb.Sheets[wb.SheetNames[0]];
-      const rows = XLSX.utils.sheet_to_json(ws, {defval:''});
-
-      // Column name map — tolerant of accents/spaces
-      function col(row, ...names) {
-        for (const n of names) {
-          for (const k of Object.keys(row)) {
-            if (k.trim().toLowerCase() === n.toLowerCase()) return String(row[k]||'').trim();
-          }
-        }
-        return '';
-      }
-
-      const VALID_TIPOS = ['Nave','Local','Oficina'];
-      const nuevos = [];
-      const yaExisten = (DB.leads||[]).map(l=>l.enlace).filter(Boolean);
-
-      for (const row of rows) {
-        const tipo = col(row,'Tipo de inmueble','Tipo');
-        if (!VALID_TIPOS.includes(tipo)) continue;
-
-        // Deduplicate by URL
-        const url = col(row,'URL del anuncio','URL','Enlace','enlace');
-        if (url && yaExisten.includes(url)) continue;
-
-        const prioridad = col(row,'Prioridad captación','Prioridad');
-        let estado = 'Nuevo';
-        if (prioridad.includes('PRIORITARIO')) estado = 'En seguimiento';
-        else if (prioridad.includes('SEGUIMIENTO')) estado = 'En seguimiento';
-
-        const zona = col(row,'Barrio/Zona','Barrio','Zona');
-        const municipio = col(row,'Municipio') || 'Málaga';
-        const zonaFull = zona ? zona + ' · ' + municipio : municipio;
-
-        const precio = col(row,'Precio (€)','Precio');
-        const precioNum = parseFloat(precio);
-        const precioStr = !isNaN(precioNum) ? String(Math.round(precioNum)) : precio;
-
-        const precioAnt = col(row,'Precio anterior (€)','Precio anterior');
-        const precioAntNum = parseFloat(precioAnt);
-        const precioAntStr = !isNaN(precioAntNum) && precioAntNum > 0 ? String(Math.round(precioAntNum)) : '';
-
-        const sup = col(row,'Superficie (m²)','Superficie');
-        const supNum = parseFloat(sup);
-        const supStr = !isNaN(supNum) ? String(Math.round(supNum)) : sup;
-
-        const epm2 = col(row,'€/m²','€/m2','Euros m2');
-        const epm2Num = parseFloat(epm2);
-        const epm2Str = !isNaN(epm2Num) ? String(Math.round(epm2Num)) : epm2;
-
-        // Generate ref
-        const nums = (DB.leads||[]).map(l=>parseInt((l.ref||'').replace('LEAD-',''))).filter(n=>!isNaN(n));
-        const nextNum = nums.length ? Math.max(...nums) + 1 + nuevos.length : nuevos.length + 1;
-        const ref = 'LEAD-' + String(nextNum).padStart(3,'0');
-
-        nuevos.push({
-          ref,
-          origen: 'Francisco',
-          fuente: col(row,'Portal Web','Portal','Fuente') || 'Idealista',
-          fecha: new Date().toISOString().slice(0,10),
-          semana: String(getWeekLabel()),
-          tipoActivo: tipo,
-          operacion: 'Venta',
-          perfil: col(row,'Tipo','Perfil') || 'Desconocido',
-          zona: zonaFull,
-          direccion: col(row,'Dirección','Direccion'),
-          superficie: supStr,
-          precio: precioStr,
-          precioAnterior: precioAntStr,
-          preciom2: epm2Str,
-          nombre: col(row,'Contacto','Nombre','Empresa'),
-          telefono: col(row,'Teléfono','Telefono'),
-          email: col(row,'Email','email') || '',
-          estado,
-          enlace: url,
-          proximoContacto: '',
-          prioridadCaptacion: prioridad,
-          fechaActualizacion: col(row,'Fecha de actualización','Fecha actualización','Fecha actualizacion'),
-          diasSinActualizar: col(row,'Días sin actualizar','Dias sin actualizar') || '',
-          obs: '',
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString()
-        });
-      }
-
-      if (!nuevos.length) {
-        alert('No se han encontrado leads nuevos. Los ya existentes (por URL) se han omitido.');
-        input.value = '';
-        return;
-      }
-
-      if(!DB.leads) DB.leads = [];
-      // Prepend new leads
-      DB.leads.unshift(...nuevos);
-      saveDB();
-      renderProspeccion();
-      alert('✅ ' + nuevos.length + ' lead' + (nuevos.length===1?'':'s') + ' importado' + (nuevos.length===1?'':'s') + ' correctamente.\nLos duplicados (misma URL) se han omitido automáticamente.');
-    } catch(err) {
-      alert('Error al leer el archivo: ' + err.message);
-    }
-    input.value = '';
-  };
-  reader.readAsArrayBuffer(file);
-}
-
-function renderGuiaCaptacion() {
-  return `<div style="display:flex;flex-direction:column;gap:16px;padding-bottom:40px">
-
-    <!-- Señales de alerta en el anuncio -->
-    <div style="background:#fff;border-radius:14px;border:1px solid var(--border);padding:22px 24px;box-shadow:var(--shadow)">
-      <div style="font-size:15px;font-weight:800;color:var(--teal);margin-bottom:14px;display:flex;align-items:center;gap:8px">🚨 Señales que indican que merece la pena llamar</div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
-        <div style="background:#fef3c7;border-radius:10px;padding:12px 14px;border-left:4px solid #f59e0b">
-          <div style="font-size:12px;font-weight:700;color:#92400e;margin-bottom:4px">⏱ Lleva más de 90 días publicado</div>
-          <div style="font-size:12px;color:#78350f">El propietario está frustrado y abierto a negociar. Es el momento de entrar. Cuanto más tiempo lleve, menos poder tiene para rechazarte.</div>
-        </div>
-        <div style="background:#fef3c7;border-radius:10px;padding:12px 14px;border-left:4px solid #f59e0b">
-          <div style="font-size:12px;font-weight:700;color:#92400e;margin-bottom:4px">📉 El precio ha bajado</div>
-          <div style="font-size:12px;color:#78350f">Una o varias bajadas de precio confirman que no se vende solo. El campo "Precio anterior" en el lead te lo indica. Señal clara de propietario motivado.</div>
-        </div>
-        <div style="background:#dcfce7;border-radius:10px;padding:12px 14px;border-left:4px solid #10b981">
-          <div style="font-size:12px;font-weight:700;color:#065f46;margin-bottom:4px">👤 Anuncio de particular (sin agencia)</div>
-          <div style="font-size:12px;color:#047857">Sin REF. comercial · descripción en 1ª persona · móvil directo · sin logo de agencia · sin "IVA no incluido". Estos son los objetivos prioritarios.</div>
-        </div>
-        <div style="background:#dcfce7;border-radius:10px;padding:12px 14px;border-left:4px solid #10b981">
-          <div style="font-size:12px;font-weight:700;color:#065f46;margin-bottom:4px">🆕 Publicado hace menos de 24h</div>
-          <div style="font-size:12px;color:#047857">Llama ese mismo día. Los primeros en llamar tienen ventaja clara. Frase: "Vi su local/nave en [portal], soy especialista en terciario en la zona, ¿sigue disponible?"</div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Identificar si es particular o agencia -->
-    <div style="background:#fff;border-radius:14px;border:1px solid var(--border);padding:22px 24px;box-shadow:var(--shadow)">
-      <div style="font-size:15px;font-weight:800;color:var(--teal);margin-bottom:14px;display:flex;align-items:center;gap:8px">🔍 ¿Particular o agencia? Cómo identificarlo</div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
-        <div>
-          <div style="font-size:12px;font-weight:700;color:#10b981;margin-bottom:8px;text-transform:uppercase;letter-spacing:0.5px">✅ Señales de particular</div>
-          <ul style="font-size:12px;color:#374151;line-height:1.8;padding-left:16px;margin:0">
-            <li>Descripción en primera persona ("vendo mi local")</li>
-            <li>Sin código de referencia (REF-XXXX)</li>
-            <li>Sin logo ni marca de agencia</li>
-            <li>Teléfono móvil directo (6xx / 7xx)</li>
-            <li>Precio sin IVA especificado</li>
-            <li>Fotos caseras o sin tratamiento profesional</li>
-            <li>Responde él mismo por WhatsApp</li>
-          </ul>
-        </div>
-        <div>
-          <div style="font-size:12px;font-weight:700;color:#ef4444;margin-bottom:8px;text-transform:uppercase;letter-spacing:0.5px">❌ Señales de agencia (descartar)</div>
-          <ul style="font-size:12px;color:#374151;line-height:1.8;padding-left:16px;margin:0">
-            <li>Geslawbrokers, Gilmar, Redpiso, Engel & Völkers, Century 21</li>
-            <li>Aparece REF. comercial en el anuncio</li>
-            <li>"Honorarios incluidos" o "más gastos de gestión"</li>
-            <li>Teléfono fijo o número 900</li>
-            <li>Fotos con marca de agua de la agencia</li>
-            <li>Responde un asesor diferente cada vez</li>
-          </ul>
-        </div>
-      </div>
-    </div>
-
-    <!-- Cuándo pedir nota simple -->
-    <div style="background:#fff;border-radius:14px;border:1px solid var(--border);padding:22px 24px;box-shadow:var(--shadow)">
-      <div style="font-size:15px;font-weight:800;color:var(--teal);margin-bottom:14px;display:flex;align-items:center;gap:8px">📄 Cuándo vale la pena pedir la nota simple (9€)</div>
-      <div style="font-size:13px;color:#374151;line-height:1.7;margin-bottom:12px">La nota simple del Registro de la Propiedad te da: nombre del propietario real, DNI/CIF, cargas, hipotecas y embargos. Se pide online en <strong>registradores.es</strong> con la referencia catastral o la dirección.</div>
-      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px">
-        <div style="background:#eff6ff;border-radius:10px;padding:12px;border-top:3px solid #3b82f6">
-          <div style="font-size:12px;font-weight:700;color:#1d4ed8;margin-bottom:4px">Merece la pena si…</div>
-          <div style="font-size:12px;color:#1e40af">Lleva +90 días sin venderse · precio bajado · activo de ticket alto (+150.000€) · nave o local estratégico en zona prime</div>
-        </div>
-        <div style="background:#f0fdf4;border-radius:10px;padding:12px;border-top:3px solid #10b981">
-          <div style="font-size:12px;font-weight:700;color:#065f46;margin-bottom:4px">Qué obtienes</div>
-          <div style="font-size:12px;color:#047857">Propietario real (no el anunciante) · si hay hipoteca activa · si tiene cargas que compliquen la operación · superficie escriturada vs. anunciada</div>
-        </div>
-        <div style="background:#faf5ff;border-radius:10px;padding:12px;border-top:3px solid #7c3aed">
-          <div style="font-size:12px;font-weight:700;color:#5b21b6;margin-bottom:4px">Cómo usarla</div>
-          <div style="font-size:12px;color:#6d28d9">Si el propietario tiene cargas → argumento para urgir la venta. Si hay diferencia de m² → palanca de negociación. Si es sociedad → busca el administrador en el Registro Mercantil.</div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Táctica de llamada -->
-    <div style="background:#fff;border-radius:14px;border:1px solid var(--border);padding:22px 24px;box-shadow:var(--shadow)">
-      <div style="font-size:15px;font-weight:800;color:var(--teal);margin-bottom:14px;display:flex;align-items:center;gap:8px">📞 Táctica de llamada</div>
-      <div style="display:flex;flex-direction:column;gap:8px">
-        <div style="background:#f8fafc;border-radius:8px;padding:12px 14px;border-left:3px solid var(--teal)">
-          <div style="font-size:12px;font-weight:700;color:var(--teal);margin-bottom:2px">Frase de apertura</div>
-          <div style="font-size:13px;color:#374151;font-style:italic">"Buenos días, vi su local/nave en [portal], soy agente especializado en terciario en la zona, ¿sigue disponible?"</div>
-        </div>
-        <div style="background:#f8fafc;border-radius:8px;padding:12px 14px;border-left:3px solid #f59e0b">
-          <div style="font-size:12px;font-weight:700;color:#92400e;margin-bottom:2px">Reglas clave</div>
-          <ul style="font-size:12px;color:#374151;line-height:1.8;padding-left:16px;margin:0">
-            <li>No mencionar honorarios en la primera llamada</li>
-            <li>Anuncio &lt;24h → llamar ese mismo día sin excepción</li>
-            <li>Si no responde → WhatsApp al día siguiente, no llamada</li>
-            <li>Si lleva +90 días → mencionar que conoces el mercado local y puedes valorarlo gratis</li>
-          </ul>
-        </div>
-        <div style="background:#f8fafc;border-radius:8px;padding:12px 14px;border-left:3px solid #10b981">
-          <div style="font-size:12px;font-weight:700;color:#065f46;margin-bottom:2px">Argumento para propietarios bloqueados</div>
-          <div style="font-size:13px;color:#374151;font-style:italic">"Lleva tiempo en el mercado porque el precio o la visibilidad no están bien calibrados. Yo tengo compradores activos para este tipo de activo y puedo traerle visitas cualificadas esta semana."</div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Portales prioritarios -->
-    <div style="background:#fff;border-radius:14px;border:1px solid var(--border);padding:22px 24px;box-shadow:var(--shadow)">
-      <div style="font-size:15px;font-weight:800;color:var(--teal);margin-bottom:14px;display:flex;align-items:center;gap:8px">🌐 Portales: dónde buscar y por qué</div>
-      <div style="display:flex;flex-direction:column;gap:8px">
-        <div style="display:grid;grid-template-columns:80px 1fr;gap:10px;align-items:start;padding:10px 12px;background:#fef9c3;border-radius:8px">
-          <div style="font-size:11px;font-weight:800;color:#854d0e">★★★ PRIMERO</div>
-          <div style="font-size:12px;color:#374151"><strong>Milanuncios y Wallapop</strong> — Mayor ratio de propietario directo. Sin agencias. Muy accesibles por WhatsApp. Poca competencia de otros agentes.</div>
-        </div>
-        <div style="display:grid;grid-template-columns:80px 1fr;gap:10px;align-items:start;padding:10px 12px;background:#f0fdf4;border-radius:8px">
-          <div style="font-size:11px;font-weight:800;color:#065f46">★★★ FILTRO</div>
-          <div style="font-size:12px;color:#374151"><strong>Locales.es</strong> — Tiene filtro nativo de "propietario directo". El más fiable para descartar agencias automáticamente.</div>
-        </div>
-        <div style="display:grid;grid-template-columns:80px 1fr;gap:10px;align-items:start;padding:10px 12px;background:#eff6ff;border-radius:8px">
-          <div style="font-size:11px;font-weight:800;color:#1d4ed8">★★ TICKET</div>
-          <div style="font-size:12px;color:#374151"><strong>LoopNet</strong> — Terciario profesional. Perfil inversor o empresa. Honorarios más altos. Priorizar naves industriales y oficinas en Málaga capital.</div>
-        </div>
-        <div style="display:grid;grid-template-columns:80px 1fr;gap:10px;align-items:start;padding:10px 12px;background:#faf5ff;border-radius:8px">
-          <div style="font-size:11px;font-weight:800;color:#5b21b6">★★ MANUAL</div>
-          <div style="font-size:12px;color:#374151"><strong>Facebook Marketplace</strong> — Sin URL de filtro directo. Buscar manualmente: "local Málaga", "nave Vélez", "oficina Nerja". Propietarios muy accesibles, sin competencia de agencias.</div>
-        </div>
-        <div style="display:grid;grid-template-columns:80px 1fr;gap:10px;align-items:start;padding:10px 12px;background:#f1f5f9;border-radius:8px">
-          <div style="font-size:11px;font-weight:800;color:#475569">YA TIENES</div>
-          <div style="font-size:12px;color:#374151"><strong>Idealista y Fotocasa</strong> — Ya tienes perfil profesional activo. No duplicar aquí. Trabajarlos desde tu plataforma habitual.</div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Off-market vía catastro -->
-    <div style="background:#fff;border-radius:14px;border:1px solid var(--border);padding:22px 24px;box-shadow:var(--shadow)">
-      <div style="font-size:15px;font-weight:800;color:var(--teal);margin-bottom:14px;display:flex;align-items:center;gap:8px">🗺️ Captación off-market: activos que nunca han salido al portal</div>
-      <div style="font-size:13px;color:#374151;line-height:1.7;margin-bottom:12px">El activo más valioso es el que ningún otro agente ha visto. Para encontrarlo, el catastro es tu herramienta.</div>
-      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px">
-        <div style="background:#f8fafc;border-radius:10px;padding:12px;text-align:center">
-          <div style="font-size:20px;margin-bottom:6px">1️⃣</div>
-          <div style="font-size:11px;font-weight:700;color:var(--teal);margin-bottom:4px">Identifica el activo</div>
-          <div style="font-size:11px;color:#64748b">Nave o local vacío/infrautilizado que ves en campo o en una zona que conoces</div>
-        </div>
-        <div style="background:#f8fafc;border-radius:10px;padding:12px;text-align:center">
-          <div style="font-size:20px;margin-bottom:6px">2️⃣</div>
-          <div style="font-size:11px;font-weight:700;color:var(--teal);margin-bottom:4px">Catastro gratuito</div>
-          <div style="font-size:11px;color:#64748b">sedecatastro.gob.es → dirección → obtienes referencia catastral, m², uso y antigüedad</div>
-        </div>
-        <div style="background:#f8fafc;border-radius:10px;padding:12px;text-align:center">
-          <div style="font-size:20px;margin-bottom:6px">3️⃣</div>
-          <div style="font-size:11px;font-weight:700;color:var(--teal);margin-bottom:4px">Nota simple (9€)</div>
-          <div style="font-size:11px;color:#64748b">registradores.es → nombre del propietario real, cargas e hipotecas</div>
-        </div>
-        <div style="background:#f8fafc;border-radius:10px;padding:12px;text-align:center">
-          <div style="font-size:20px;margin-bottom:6px">4️⃣</div>
-          <div style="font-size:11px;font-weight:700;color:var(--teal);margin-bottom:4px">Contacto directo</div>
-          <div style="font-size:11px;color:#64748b">Llegas al propietario con información que él mismo a veces no tiene ordenada. Eso es captación inteligente.</div>
-        </div>
-      </div>
-    </div>
-
-  </div>`;
+  alert('✅ Lead convertido. Activo ' + nuevo.ref + ' creado en Captación.' + propMsg);
+  openGlobalView('Captación');
 }
 
 function exportarLeadsCSV() {
   const leads = DB.leads || [];
   if(!leads.length) { alert('No hay leads para exportar.'); return; }
-  const cols = ['ref','fecha','semana','fuente','tipoActivo','operacion','perfil','zona','direccion','superficie','precio','precioAnterior','preciom2','nombre','telefono','email','estado','enlace','prioridadCaptacion','proximoContacto','diasSinActualizar','fechaActualizacion','obs'];
-  const headers = ['Ref','Fecha','Semana','Fuente','Tipo activo','Operación','Perfil','Zona','Dirección','Superficie','Precio','Precio anterior','€/m²','Nombre/Empresa','Teléfono','Email','Estado','Enlace','Prioridad captación','Próx. contacto','Días sin actualizar','Fecha actualización','Observaciones'];
+  const cols = ['ref','fecha','semana','fuente','tipoActivo','operacion','perfil','zona','superficie','precio','nombre','telefono','email','estado','enlace','proximoContacto','obs'];
+  const headers = ['Ref','Fecha','Semana','Fuente','Tipo activo','Operación','Perfil','Zona','Superficie','Precio','Nombre/Empresa','Teléfono','Email','Estado','Enlace','Próx. contacto','Observaciones'];
   const rows = leads.map(l => cols.map(c => '"'+(String(l[c]||'').replace(/"/g,'""'))+'"').join(','));
   const csv = [headers.join(','), ...rows].join('\n');
   const blob = new Blob(['\uFEFF'+csv], {type:'text/csv;charset=utf-8'});
