@@ -3653,18 +3653,50 @@ function eliminarLead(idx) {
 function convertirACaptacion(idx) {
   const l = DB.leads[idx];
   if(!l) return;
-  // Marcar como convertido
+
+  // Marcar lead como convertido
   DB.leads[idx].estado = 'Convertido a captación';
   DB.leads[idx].convertidoAt = new Date().toISOString();
-  saveDB();
+
+  // Crear propietario si hay nombre o teléfono en el lead
+  let propietarioId = '';
+  if(l.nombre || l.telefono) {
+    // Comprobar si ya existe un propietario con ese teléfono
+    const telNorm = (l.telefono||'').replace(/[\s\-]/g,'');
+    const existing = telNorm ? (DB.propietarios||[]).find(p =>
+      (p.tel1||'').replace(/[\s\-]/g,'') === telNorm ||
+      (p.tel2||'').replace(/[\s\-]/g,'') === telNorm
+    ) : null;
+
+    if(existing) {
+      propietarioId = existing.id;
+    } else {
+      const prop = {
+        id: 'prop_' + Date.now(),
+        nombre: l.nombre || 'Sin nombre',
+        empresa: '',
+        tel1: l.telefono || '',
+        tel2: '', tel3: '',
+        email: l.email || '',
+        origen: `Prospección · ${l.fuente||''} (${l.ref})`,
+        observaciones: l.perfil ? `Perfil: ${l.perfil}` : ''
+      };
+      if(!DB.propietarios) DB.propietarios = [];
+      DB.propietarios.push(prop);
+      propietarioId = prop.id;
+    }
+  }
+
   // Determinar tipo destino
   const tipoMap = {'Local comercial':'locales','Nave industrial':'naves','Oficina':'oficinas'};
   const tipo = tipoMap[l.tipoActivo] || 'locales';
-  // Prefill datos en nuevo activo
+
+  // Crear activo con todos los datos del lead
   const nuevo = {
     ref: genRef(tipo),
     municipio: l.zona || '',
     provincia: 'Málaga',
+    direccion: l.direccion || '',
     tipoOperacion: l.operacion || 'Venta',
     precioVenta: l.operacion === 'Venta' ? (l.precio||'').replace(/[^\d]/g,'') : '',
     precioAlquiler: l.operacion === 'Alquiler' ? (l.precio||'').replace(/[^\d]/g,'') : '',
@@ -3673,15 +3705,21 @@ function convertirACaptacion(idx) {
     estadoComercial: 'Captación',
     documentacion: 'Pendiente',
     exclusiva: 'No',
-    observaciones: `Lead procedente de ${l.fuente||'prospección'} (${l.ref}). ${l.obs||''}`.trim(),
+    propietarioId,
+    observaciones: `Lead procedente de ${l.fuente||'prospección'} (${l.ref}).${l.obs?' '+l.obs:''}`.trim(),
     enlaceWeb: l.enlace || '',
     fechaCaptacion: new Date().toISOString().slice(0,10),
     createdAt: new Date().toISOString()
   };
+
   if(!DB[tipo]) DB[tipo] = [];
   DB[tipo].unshift(nuevo);
   saveDB();
-  alert(`✅ Lead convertido. Se ha creado el activo ${nuevo.ref} en ${tipo.charAt(0).toUpperCase()+tipo.slice(1)}.`);
+
+  const propMsg = propietarioId
+    ? `\nPropietario "${l.nombre||l.telefono}" creado y vinculado.`
+    : '\n⚠️ Sin nombre ni teléfono — propietario no creado.';
+  alert(`✅ Lead convertido. Activo ${nuevo.ref} creado en ${tipo.charAt(0).toUpperCase()+tipo.slice(1)}.${propMsg}`);
   doSwitchTab(tipo);
 }
 
