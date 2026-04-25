@@ -2887,246 +2887,149 @@ function saveIvaLiquidado(trimestre, anyo, valor) {
 }
 
 // ── HOME ──────────────────────────────────────────────────────────────────────
-var _homeSearchQuery = '';
 
 function mountHomeSearch() {
   var mount = document.getElementById('homeSearchMount');
   if (!mount) return;
-  // Only create if not already there
-  if (document.getElementById('home-search-input')) { return; }
+  if (document.getElementById('home-search-input')) return;
   var wrap = document.createElement('div');
   wrap.style.cssText = 'position:relative';
   var icon = document.createElement('span');
   icon.innerHTML = '&#128269;';
   icon.style.cssText = 'position:absolute;left:14px;top:50%;transform:translateY(-50%);font-size:16px;pointer-events:none';
   var inp = document.createElement('input');
-  inp.type = 'text';
-  inp.id = 'home-search-input';
-  inp.value = _homeSearchQuery;
-  inp.placeholder = 'Buscar en todo: activos, leads, clientes, propietarios...';
-  inp.style.cssText = 'width:100%;padding:12px 14px 12px 44px;border-radius:10px;border:2px solid #e2e8f0;font-size:14px;font-family:inherit;color:var(--text);background:#fff;outline:none;box-shadow:0 2px 8px rgba(0,0,0,0.06);transition:border-color 0.15s';
-  inp.addEventListener('focus', function(){ inp.style.borderColor='var(--teal)'; });
-  inp.addEventListener('blur', function(){ inp.style.borderColor = _homeSearchQuery ? 'var(--teal)' : '#e2e8f0'; });
-  inp.addEventListener('input', function(){ onHomeSearch(inp.value); });
-  inp.addEventListener('keydown', function(e){ if(e.key==='Escape'){ onHomeSearch(''); inp.value=''; } });
-  var clearBtn = document.createElement('button');
-  clearBtn.innerHTML = '&#x2715;';
-  clearBtn.id = 'home-search-clear';
-  clearBtn.style.cssText = 'position:absolute;right:12px;top:50%;transform:translateY(-50%);background:none;border:none;font-size:18px;cursor:pointer;color:#94a3b8;line-height:1;display:none';
-  clearBtn.addEventListener('click', function(){ onHomeSearch(''); inp.value=''; inp.focus(); });
-  wrap.appendChild(icon);
-  wrap.appendChild(inp);
-  wrap.appendChild(clearBtn);
+  inp.type='text'; inp.id='home-search-input'; inp.value=_homeSearchQuery;
+  inp.placeholder='Buscar en todo: activos, leads, clientes, propietarios...';
+  inp.style.cssText='width:100%;padding:12px 14px 12px 44px;border-radius:10px;border:2px solid #e2e8f0;font-size:14px;font-family:inherit;color:var(--text);background:#fff;outline:none;box-shadow:0 2px 8px rgba(0,0,0,0.06);transition:border-color 0.15s';
+  inp.addEventListener('focus',function(){inp.style.borderColor='var(--teal)';});
+  inp.addEventListener('blur',function(){inp.style.borderColor=_homeSearchQuery?'var(--teal)':'#e2e8f0';});
+  inp.addEventListener('input',function(){onHomeSearch(inp.value);});
+  inp.addEventListener('keydown',function(e){if(e.key==='Escape'){onHomeSearch('');inp.value='';}});
+  var clr=document.createElement('button');
+  clr.innerHTML='&#x2715;'; clr.id='home-search-clear';
+  clr.style.cssText='position:absolute;right:12px;top:50%;transform:translateY(-50%);background:none;border:none;font-size:18px;cursor:pointer;color:#94a3b8;line-height:1;display:none';
+  clr.addEventListener('click',function(){onHomeSearch('');inp.value='';inp.focus();});
+  wrap.appendChild(icon); wrap.appendChild(inp); wrap.appendChild(clr);
   mount.appendChild(wrap);
 }
 
 function renderHomeResults() {
   var area = document.getElementById('homeResultsArea');
   if (!area) return;
-  var clearBtn = document.getElementById('home-search-clear');
-  if (clearBtn) clearBtn.style.display = _homeSearchQuery ? 'block' : 'none';
-
+  var clrBtn = document.getElementById('home-search-clear');
+  if (clrBtn) clrBtn.style.display = _homeSearchQuery ? 'block' : 'none';
   var TIPOS = ['naves','oficinas','locales','pisos','chalets'];
   var tipoLabel = {naves:'Nave',oficinas:'Oficina',locales:'Local',pisos:'Piso',chalets:'Casa'};
   var tipoLabelPlural = {naves:'Naves',oficinas:'Oficinas',locales:'Locales',pisos:'Pisos',chalets:'Casas'};
   var tipoEmoji = {naves:'&#127981;',oficinas:'&#127970;',locales:'&#127978;',pisos:'&#127968;',chalets:'&#127969;'};
   var tipoColor = {naves:'#0f4c5c',oficinas:'#0284c7',locales:'#059669',pisos:'#7c3aed',chalets:'#b45309'};
-  var FASE_COLOR = {'Captacion':'#f59e0b','Publicado':'#10b981','Firmado':'#0f4c5c','Archivado':'#e2e8f0','Captación':'#f59e0b'};
-  var FASE_TEXT  = {'Captacion':'#fff','Publicado':'#fff','Firmado':'#fff','Archivado':'#94a3b8','Captación':'#fff'};
-
-  var q = (_homeSearchQuery || '').trim();
-
+  var FASE_COLOR2 = {'Captacion':'#f59e0b','Publicado':'#10b981','Firmado':'#0f4c5c','Archivado':'#e2e8f0','Captación':'#f59e0b'};
+  var FASE_TEXT2  = {'Captacion':'#fff','Publicado':'#fff','Firmado':'#fff','Archivado':'#94a3b8','Captación':'#fff'};
+  var q = (_homeSearchQuery||'').trim();
   if (!q) {
-    // Show group tiles
-    var totalActivos = 0;
-    TIPOS.forEach(function(t){ totalActivos += (DB[t]||[]).length; });
-    var gruposHTML = '';
-    TIPOS.forEach(function(t) {
-      var list = DB[t] || [];
-      if (list.length === 0) return;
-      var captacion = list.filter(function(a){ return a.estadoComercial==='Captación'; }).length;
-      var publicado  = list.filter(function(a){ return a.estadoComercial==='Publicado'; }).length;
-      var firmado    = list.filter(function(a){ return a.estadoComercial==='Firmado'; }).length;
-      var archivado  = list.filter(function(a){ return a.estadoComercial==='Archivado'; }).length;
-      var bHTML = '';
-      if (captacion>0) bHTML += '<span style="background:#f59e0b;color:#fff;font-size:11px;font-weight:700;padding:2px 9px;border-radius:20px">'+captacion+' Captación</span> ';
-      if (publicado>0) bHTML += '<span style="background:#10b981;color:#fff;font-size:11px;font-weight:700;padding:2px 9px;border-radius:20px">'+publicado+' Publicado</span> ';
-      if (firmado>0)   bHTML += '<span style="background:#0f4c5c;color:#fff;font-size:11px;font-weight:700;padding:2px 9px;border-radius:20px">'+firmado+' Firmado</span> ';
-      if (archivado>0) bHTML += '<span style="background:#e2e8f0;color:#94a3b8;font-size:11px;font-weight:700;padding:2px 9px;border-radius:20px">'+archivado+' Archivado</span> ';
-      gruposHTML += '<div style="border:1px solid #e2e8f0;border-left:4px solid '+tipoColor[t]+';border-radius:10px;padding:16px 20px;background:#fff;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;cursor:pointer;transition:box-shadow 0.15s" data-tipo="'+t+'" onclick="switchTab(this.dataset.tipo)">'
-        +'<div style="display:flex;align-items:center;gap:12px">'
-        +'<span style="font-size:22px">'+tipoEmoji[t]+'</span>'
+    var totalActivos=0; TIPOS.forEach(function(t){totalActivos+=(DB[t]||[]).length;});
+    var gruposHTML='';
+    TIPOS.forEach(function(t){
+      var list=DB[t]||[]; if(!list.length) return;
+      var cap=list.filter(function(a){return a.estadoComercial==='Captación';}).length;
+      var pub=list.filter(function(a){return a.estadoComercial==='Publicado';}).length;
+      var fir=list.filter(function(a){return a.estadoComercial==='Firmado';}).length;
+      var arc=list.filter(function(a){return a.estadoComercial==='Archivado';}).length;
+      var bH='';
+      if(cap>0) bH+='<span style="background:#f59e0b;color:#fff;font-size:11px;font-weight:700;padding:2px 9px;border-radius:20px">'+cap+' Captación</span> ';
+      if(pub>0) bH+='<span style="background:#10b981;color:#fff;font-size:11px;font-weight:700;padding:2px 9px;border-radius:20px">'+pub+' Publicado</span> ';
+      if(fir>0) bH+='<span style="background:#0f4c5c;color:#fff;font-size:11px;font-weight:700;padding:2px 9px;border-radius:20px">'+fir+' Firmado</span> ';
+      if(arc>0) bH+='<span style="background:#e2e8f0;color:#94a3b8;font-size:11px;font-weight:700;padding:2px 9px;border-radius:20px">'+arc+' Archivado</span> ';
+      gruposHTML+='<div style="border:1px solid #e2e8f0;border-left:4px solid '+tipoColor[t]+';border-radius:10px;padding:16px 20px;background:#fff;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;cursor:pointer" data-tipo="'+t+'" onclick="switchTab(this.dataset.tipo)">'
+        +'<div style="display:flex;align-items:center;gap:12px"><span style="font-size:22px">'+tipoEmoji[t]+'</span>'
         +'<div><div style="font-size:15px;font-weight:800;color:#0f4c5c">'+tipoLabelPlural[t]+'</div>'
         +'<div style="font-size:12px;color:#64748b;margin-top:3px">'+list.length+' propiedad'+(list.length!==1?'es':'')+'</div>'
-        +'</div></div>'
-        +'<div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center">'+bHTML
-        +'<span style="font-size:20px;color:#cbd5e1;margin-left:4px">&#8250;</span>'
-        +'</div></div>';
+        +'</div></div><div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center">'+bH
+        +'<span style="font-size:20px;color:#cbd5e1;margin-left:4px">&#8250;</span></div></div>';
     });
-    if (!gruposHTML) gruposHTML = '<div class="empty-state" style="padding:48px 0">No hay propiedades registradas todavía.</div>';
-    area.innerHTML = '<div style="font-size:11px;color:#94a3b8;margin-bottom:12px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px">'
-      +totalActivos+' propiedad'+(totalActivos!==1?'es':'')+' en cartera'
-      +'</div><div style="display:flex;flex-direction:column;gap:10px">'+gruposHTML+'</div>';
+    if(!gruposHTML) gruposHTML='<div class="empty-state" style="padding:48px 0">No hay propiedades registradas todavía.</div>';
+    area.innerHTML='<div style="font-size:11px;color:#94a3b8;margin-bottom:12px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px">'+totalActivos+' propiedad'+(totalActivos!==1?'es':'')+' en cartera</div><div style="display:flex;flex-direction:column;gap:10px">'+gruposHTML+'</div>';
     return;
   }
-
-  // --- GLOBAL SEARCH ---
-  var ql = q.toLowerCase();
-  var grupos = [];
-
-  // 1. Activos (naves, oficinas, locales, pisos, chalets)
-  var activosRes = [];
-  TIPOS.forEach(function(t) {
-    (DB[t]||[]).forEach(function(a, i) {
-      var prop = (DB.propietarios||[]).find(function(p){ return p.id===a.propietarioId; });
-      var propNombre = prop ? (prop.nombre||'').toLowerCase() : '';
-      var propTel = prop ? [prop.tel1,prop.tel2,prop.tel3].filter(Boolean).join(' ').toLowerCase() : '';
-      var match = (a.ref||'').toLowerCase().includes(ql)
-        || (a.refAnterior||'').toLowerCase().includes(ql)
-        || (a.direccion||'').toLowerCase().includes(ql)
-        || (a.municipio||'').toLowerCase().includes(ql)
-        || (a.zona||'').toLowerCase().includes(ql)
-        || (a.observaciones||'').toLowerCase().includes(ql)
-        || (a.estadoComercial||'').toLowerCase().includes(ql)
-        || propNombre.includes(ql) || propTel.includes(ql);
-      if (match) activosRes.push({a:a,t:t,i:i});
+  var ql=q.toLowerCase(); var grupos=[];
+  var actRes=[];
+  TIPOS.forEach(function(t){
+    (DB[t]||[]).forEach(function(a,i){
+      var prop=(DB.propietarios||[]).find(function(p){return p.id===a.propietarioId;});
+      var pN=prop?(prop.nombre||'').toLowerCase():'';
+      var pT=prop?[prop.tel1,prop.tel2,prop.tel3].filter(Boolean).join(' ').toLowerCase():'';
+      if((a.ref||'').toLowerCase().includes(ql)||(a.refAnterior||'').toLowerCase().includes(ql)||(a.direccion||'').toLowerCase().includes(ql)||(a.municipio||'').toLowerCase().includes(ql)||(a.zona||'').toLowerCase().includes(ql)||(a.estadoComercial||'').toLowerCase().includes(ql)||pN.includes(ql)||pT.includes(ql))
+        actRes.push({a:a,t:t,i:i});
     });
   });
-  if (activosRes.length > 0) {
-    var cards = activosRes.slice(0,8).map(function(r) {
-      var a = r.a;
-      var bc = FASE_COLOR[a.estadoComercial]||'#94a3b8';
-      var bt = FASE_TEXT[a.estadoComercial]||'#fff';
-      var sup = a.superficieTotal||a.superficie||a.superficieConstruida||'';
-      var prop = (DB.propietarios||[]).find(function(p){ return p.id===a.propietarioId; });
-      var metaHTML = '';
-      if (sup) metaHTML += '<span>&#128208; '+escH(sup)+' m²</span>';
-      if (a.precioVenta) metaHTML += '<span>&#128182; '+eur(a.precioVenta)+'</span>';
-      if (a.precioAlquiler) metaHTML += '<span>&#128273; '+eur(a.precioAlquiler)+'/mes</span>';
-      if (prop) metaHTML += '<span>&#128100; '+escH(prop.nombre)+'</span>';
-      return '<div style="border:1px solid #e2e8f0;border-left:4px solid '+tipoColor[r.t]+';border-radius:10px;padding:14px 18px;background:#fff;margin-bottom:6px;display:flex;justify-content:space-between;align-items:flex-start;gap:10px;cursor:pointer" onclick="openAssetDetail(''+escH(a.ref)+'')">'
-        +'<div style="flex:1"><div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:5px">'
-        +'<span style="font-weight:800;color:#0f4c5c;font-size:14px">'+escH(a.ref)+'</span>'
-        +'<span style="background:'+tipoColor[r.t]+';color:#fff;font-size:10px;font-weight:700;padding:1px 7px;border-radius:4px">'+tipoLabel[r.t]+'</span>'
-        +'<span style="background:'+bc+';color:'+bt+';font-size:10px;font-weight:700;padding:2px 8px;border-radius:20px">'+escH(a.estadoComercial||'Captación')+'</span>'
-        +'</div>'
+  if(actRes.length>0){
+    var acards=actRes.slice(0,8).map(function(r){
+      var a=r.a; var bc2=FASE_COLOR2[a.estadoComercial]||'#94a3b8'; var bt2=FASE_TEXT2[a.estadoComercial]||'#fff';
+      var sup=a.superficieTotal||a.superficie||a.superficieConstruida||'';
+      var prop=(DB.propietarios||[]).find(function(p){return p.id===a.propietarioId;});
+      var mH=''; if(sup)mH+='<span>&#128208; '+escH(sup)+' m²</span>'; if(a.precioVenta)mH+='<span>&#128182; '+eur(a.precioVenta)+'</span>'; if(prop)mH+='<span>&#128100; '+escH(prop.nombre)+'</span>';
+      return '<div style="border:1px solid #e2e8f0;border-left:4px solid '+tipoColor[r.t]+';border-radius:10px;padding:14px 18px;background:#fff;margin-bottom:6px;cursor:pointer" onclick="openAssetDetail(''+escH(a.ref)+'')">'
+        +'<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:4px"><span style="font-weight:800;color:#0f4c5c">'+escH(a.ref)+'</span><span style="background:'+tipoColor[r.t]+';color:#fff;font-size:10px;font-weight:700;padding:1px 7px;border-radius:4px">'+tipoLabel[r.t]+'</span><span style="background:'+bc2+';color:'+bt2+';font-size:10px;font-weight:700;padding:2px 8px;border-radius:20px">'+escH(a.estadoComercial||'Captación')+'</span></div>'
         +'<div style="font-size:13px;font-weight:600;color:#1e293b;margin-bottom:4px">'+escH(a.direccion||'')+(a.municipio?' · '+escH(a.municipio):'')+'</div>'
-        +'<div style="font-size:12px;color:#64748b;display:flex;gap:12px;flex-wrap:wrap">'+metaHTML+'</div>'
-        +'</div></div>';
+        +'<div style="font-size:12px;color:#64748b;display:flex;gap:10px;flex-wrap:wrap">'+mH+'</div></div>';
     }).join('');
-    if (activosRes.length > 8) cards += '<div style="font-size:12px;color:#94a3b8;padding:6px 4px">... y '+(activosRes.length-8)+' más. Refina la búsqueda.</div>';
-    grupos.push({label:'Activos en cartera', icon:'&#127970;', color:'#0f4c5c', count:activosRes.length, html:cards});
+    if(actRes.length>8) acards+='<div style="font-size:12px;color:#94a3b8;padding:4px">... y '+(actRes.length-8)+' más.</div>';
+    grupos.push({label:'Activos en cartera',icon:'&#127970;',color:'#0f4c5c',count:actRes.length,html:acards});
   }
-
-  // 2. Leads (prospección)
-  var leadsRes = [];
-  (DB.leads||[]).forEach(function(l, i) {
-    var match = (l.ref||'').toLowerCase().includes(ql)
-      || (l.nombre||'').toLowerCase().includes(ql)
-      || (l.telefono||'').toLowerCase().includes(ql)
-      || (l.email||'').toLowerCase().includes(ql)
-      || (l.zona||'').toLowerCase().includes(ql)
-      || (l.direccion||'').toLowerCase().includes(ql)
-      || (l.estado||'').toLowerCase().includes(ql)
-      || (l.tipoActivo||'').toLowerCase().includes(ql)
-      || (l.operacion||'').toLowerCase().includes(ql)
-      || (l.obs||'').toLowerCase().includes(ql)
-      || (l.fuente||'').toLowerCase().includes(ql);
-    if (match) leadsRes.push({l:l,i:i});
+  var lRes=[];
+  (DB.leads||[]).forEach(function(l,i){
+    if((l.ref||'').toLowerCase().includes(ql)||(l.nombre||'').toLowerCase().includes(ql)||(l.telefono||'').toLowerCase().includes(ql)||(l.zona||'').toLowerCase().includes(ql)||(l.estado||'').toLowerCase().includes(ql)||(l.obs||'').toLowerCase().includes(ql))
+      lRes.push({l:l,i:i});
   });
-  if (leadsRes.length > 0) {
-    var EST_COLOR = {'Nuevo':'#f59e0b','En seguimiento':'#3b82f6','Contactado':'#8b5cf6','Convertido a captación':'#10b981','Descartado':'#94a3b8'};
-    var lcards = leadsRes.slice(0,6).map(function(r) {
-      var l = r.l;
-      var bc = EST_COLOR[l.estado]||'#94a3b8';
-      return '<div style="border:1px solid #e2e8f0;border-left:4px solid #c2410c;border-radius:10px;padding:12px 16px;background:#fff;margin-bottom:6px;cursor:pointer" onclick="leadSearchText='';switchTab('prospeccion');setTimeout(function(){editarLead('+r.i+');},200)">'
-        +'<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:4px">'
-        +'<span style="font-weight:800;color:#c2410c;font-size:13px">'+escH(l.ref||'—')+'</span>'
-        +'<span style="background:'+bc+';color:#fff;font-size:10px;font-weight:700;padding:1px 7px;border-radius:20px">'+escH(l.estado||'Nuevo')+'</span>'
-        +(l.tipoActivo?'<span style="background:#f1f5f9;color:#475569;font-size:10px;font-weight:600;padding:1px 7px;border-radius:6px">'+escH(l.tipoActivo)+'</span>':'')
-        +(l.operacion?'<span style="background:#f1f5f9;color:#475569;font-size:10px;font-weight:600;padding:1px 7px;border-radius:6px">'+escH(l.operacion)+'</span>':'')
-        +'</div>'
+  if(lRes.length>0){
+    var EST2={'Nuevo':'#f59e0b','En seguimiento':'#3b82f6','Contactado':'#8b5cf6','Convertido a captación':'#10b981','Descartado':'#94a3b8'};
+    var lcards=lRes.slice(0,6).map(function(r){
+      var l=r.l; var bc3=EST2[l.estado]||'#94a3b8';
+      return '<div style="border:1px solid #e2e8f0;border-left:4px solid #c2410c;border-radius:10px;padding:12px 16px;background:#fff;margin-bottom:6px;cursor:pointer" onclick="leadSearchText='';switchTab('prospeccion');setTimeout(function(){editarLead('+r.i+');},300)">'
+        +'<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:4px"><span style="font-weight:800;color:#c2410c">'+escH(l.ref||'—')+'</span><span style="background:'+bc3+';color:#fff;font-size:10px;font-weight:700;padding:1px 7px;border-radius:20px">'+escH(l.estado||'Nuevo')+'</span>'+(l.tipoActivo?'<span style="background:#f1f5f9;color:#475569;font-size:10px;font-weight:600;padding:1px 7px;border-radius:6px">'+escH(l.tipoActivo)+'</span>':'')+'</div>'
         +'<div style="font-size:13px;font-weight:600;color:#1e293b;margin-bottom:3px">'+escH(l.zona||l.direccion||'Sin ubicación')+(l.precio?' · '+escH(l.precio)+' €':'')+'</div>'
-        +'<div style="font-size:12px;color:#64748b;display:flex;gap:10px;flex-wrap:wrap">'
-        +(l.nombre?'<span>&#128100; '+escH(l.nombre)+'</span>':'')
-        +(l.telefono?'<span>&#128222; '+escH(l.telefono)+'</span>':'')
-        +(l.fuente?'<span>&#128279; '+escH(l.fuente)+'</span>':'')
-        +'</div></div>';
+        +'<div style="font-size:12px;color:#64748b;display:flex;gap:10px;flex-wrap:wrap">'+(l.nombre?'<span>&#128100; '+escH(l.nombre)+'</span>':'')+(l.telefono?'<span>&#128222; '+escH(l.telefono)+'</span>':'')+'</div></div>';
     }).join('');
-    if (leadsRes.length > 6) lcards += '<div style="font-size:12px;color:#94a3b8;padding:6px 4px">... y '+(leadsRes.length-6)+' más.</div>';
-    grupos.push({label:'Prospección', icon:'&#128269;', color:'#c2410c', count:leadsRes.length, html:lcards});
+    if(lRes.length>6) lcards+='<div style="font-size:12px;color:#94a3b8;padding:4px">... y '+(lRes.length-6)+' más.</div>';
+    grupos.push({label:'Prospección',icon:'&#128269;',color:'#c2410c',count:lRes.length,html:lcards});
   }
-
-  // 3. Propietarios
-  var propRes = [];
-  (DB.propietarios||[]).forEach(function(p, i) {
-    var match = (p.nombre||'').toLowerCase().includes(ql)
-      || (p.tel1||'').toLowerCase().includes(ql)
-      || (p.tel2||'').toLowerCase().includes(ql)
-      || (p.tel3||'').toLowerCase().includes(ql)
-      || (p.email||'').toLowerCase().includes(ql)
-      || (p.municipio||'').toLowerCase().includes(ql)
-      || (p.notas||'').toLowerCase().includes(ql);
-    if (match) propRes.push({p:p,i:i});
+  var pRes=[];
+  (DB.propietarios||[]).forEach(function(p,i){
+    if((p.nombre||'').toLowerCase().includes(ql)||(p.tel1||'').toLowerCase().includes(ql)||(p.email||'').toLowerCase().includes(ql))
+      pRes.push({p:p,i:i});
   });
-  if (propRes.length > 0) {
-    var pcards = propRes.slice(0,5).map(function(r) {
-      var p = r.p;
+  if(pRes.length>0){
+    var pcards=pRes.slice(0,5).map(function(r){
+      var p=r.p;
       return '<div style="border:1px solid #e2e8f0;border-left:4px solid #7c3aed;border-radius:10px;padding:12px 16px;background:#fff;margin-bottom:6px;cursor:pointer" onclick="switchTab('propietarios')">'
-        +'<div style="font-weight:700;color:#1e293b;font-size:13px;margin-bottom:3px">&#128100; '+escH(p.nombre||'—')+'</div>'
-        +'<div style="font-size:12px;color:#64748b;display:flex;gap:10px;flex-wrap:wrap">'
-        +(p.tel1?'<span>&#128222; '+escH(p.tel1)+'</span>':'')
-        +(p.email?'<span>&#128140; '+escH(p.email)+'</span>':'')
-        +(p.municipio?'<span>&#128205; '+escH(p.municipio)+'</span>':'')
-        +'</div></div>';
+        +'<div style="font-weight:700;color:#1e293b;margin-bottom:3px">&#128100; '+escH(p.nombre||'—')+'</div>'
+        +'<div style="font-size:12px;color:#64748b;display:flex;gap:10px;flex-wrap:wrap">'+(p.tel1?'<span>&#128222; '+escH(p.tel1)+'</span>':'')+(p.email?'<span>'+escH(p.email)+'</span>':'')+'</div></div>';
     }).join('');
-    if (propRes.length > 5) pcards += '<div style="font-size:12px;color:#94a3b8;padding:6px 4px">... y '+(propRes.length-5)+' más.</div>';
-    grupos.push({label:'Propietarios', icon:'&#128100;', color:'#7c3aed', count:propRes.length, html:pcards});
+    if(pRes.length>5) pcards+='<div style="font-size:12px;color:#94a3b8;padding:4px">... y '+(pRes.length-5)+' más.</div>';
+    grupos.push({label:'Propietarios',icon:'&#128100;',color:'#7c3aed',count:pRes.length,html:pcards});
   }
-
-  // 4. Clientes
-  var cliRes = [];
-  (DB.clientes||[]).forEach(function(c, i) {
-    var match = (c.nombre||'').toLowerCase().includes(ql)
-      || (c.tel||'').toLowerCase().includes(ql)
-      || (c.email||'').toLowerCase().includes(ql)
-      || (c.municipio||'').toLowerCase().includes(ql)
-      || (c.notas||'').toLowerCase().includes(ql)
-      || (c.tipoInmueble||'').toLowerCase().includes(ql);
-    if (match) cliRes.push({c:c,i:i});
+  var cRes=[];
+  (DB.clientes||[]).forEach(function(c,i){
+    if((c.nombre||'').toLowerCase().includes(ql)||(c.telefono||'').toLowerCase().includes(ql)||(c.email||'').toLowerCase().includes(ql))
+      cRes.push({c:c,i:i});
   });
-  if (cliRes.length > 0) {
-    var ccards = cliRes.slice(0,5).map(function(r) {
-      var c = r.c;
+  if(cRes.length>0){
+    var ccards=cRes.slice(0,5).map(function(r){
+      var c=r.c;
       return '<div style="border:1px solid #e2e8f0;border-left:4px solid #0284c7;border-radius:10px;padding:12px 16px;background:#fff;margin-bottom:6px;cursor:pointer" onclick="switchTab('clientes')">'
-        +'<div style="font-weight:700;color:#1e293b;font-size:13px;margin-bottom:3px">&#128188; '+escH(c.nombre||'—')+'</div>'
-        +'<div style="font-size:12px;color:#64748b;display:flex;gap:10px;flex-wrap:wrap">'
-        +(c.tel?'<span>&#128222; '+escH(c.tel)+'</span>':'')
-        +(c.email?'<span>&#128140; '+escH(c.email)+'</span>':'')
-        +(c.tipoInmueble?'<span>&#127968; '+escH(c.tipoInmueble)+'</span>':'')
-        +'</div></div>';
+        +'<div style="font-weight:700;color:#1e293b;margin-bottom:3px">&#128188; '+escH(c.nombre||'—')+'</div>'
+        +'<div style="font-size:12px;color:#64748b;display:flex;gap:10px;flex-wrap:wrap">'+(c.telefono?'<span>&#128222; '+escH(c.telefono)+'</span>':'')+(c.email?'<span>'+escH(c.email)+'</span>':'')+'</div></div>';
     }).join('');
-    if (cliRes.length > 5) ccards += '<div style="font-size:12px;color:#94a3b8;padding:6px 4px">... y '+(cliRes.length-5)+' más.</div>';
-    grupos.push({label:'Clientes', icon:'&#128188;', color:'#0284c7', count:cliRes.length, html:ccards});
+    if(cRes.length>5) ccards+='<div style="font-size:12px;color:#94a3b8;padding:4px">... y '+(cRes.length-5)+' más.</div>';
+    grupos.push({label:'Clientes',icon:'&#128188;',color:'#0284c7',count:cRes.length,html:ccards});
   }
-
-  var total = activosRes.length + leadsRes.length + propRes.length + cliRes.length;
-
-  if (total === 0) {
-    area.innerHTML = '<div class="empty-state">Sin resultados para <strong>'+escH(q)+'</strong><br><span style="font-size:13px;color:#94a3b8">Prueba con otro término, teléfono o referencia</span></div>';
-    return;
-  }
-
-  var html = '<div style="font-size:11px;color:#94a3b8;margin-bottom:16px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px">'+total+' resultado'+(total!==1?'s':'')+' en toda la app</div>';
-  grupos.forEach(function(g) {
-    html += '<div style="margin-bottom:20px">'
-      +'<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">'
-      +'<span style="background:'+g.color+';color:#fff;font-size:11px;font-weight:700;padding:3px 10px;border-radius:20px">'+g.icon+' '+g.label+' ('+g.count+')</span>'
-      +'</div>'
-      +g.html
-      +'</div>';
+  var total2=actRes.length+lRes.length+pRes.length+cRes.length;
+  if(!total2){area.innerHTML='<div class="empty-state">Sin resultados para <strong>'+escH(q)+'</strong></div>';return;}
+  var out='<div style="font-size:11px;color:#94a3b8;margin-bottom:16px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px">'+total2+' resultado'+(total2!==1?'s':'')+' en toda la app</div>';
+  grupos.forEach(function(g){
+    out+='<div style="margin-bottom:20px"><div style="margin-bottom:8px"><span style="background:'+g.color+';color:#fff;font-size:11px;font-weight:700;padding:3px 10px;border-radius:20px">'+g.icon+' '+g.label+' ('+g.count+')</span></div>'+g.html+'</div>';
   });
-  area.innerHTML = html;
+  area.innerHTML=out;
 }
 
 function renderHome(busqueda) {
@@ -3148,100 +3051,8 @@ function renderHome(busqueda) {
   var totalActivos = 0;
   TIPOS.forEach(function(t) { totalActivos += (DB[t]||[]).length; });
 
-  // Buscador (mount point estable - el input se monta via JS para no perder foco)
-  var searchHTML = '<div id="homeSearchMount" style="margin-bottom:24px"></div>'
-    + '<div id="homeResultsArea"></div>';
-
-  var bodyHTML = '';
-  // bodyHTML will be filled by renderHomeResults after mount
-  if (false) { // disabled - handled by renderHomeResults
-    var ql = q.toLowerCase();
-    var resultados = [];
-    TIPOS.forEach(function(t) {
-      var list = DB[t] || [];
-      list.forEach(function(a, i) {
-        var prop = (DB.propietarios||[]).find(function(p) { return p.id === a.propietarioId; });
-        var propNombre = prop ? (prop.nombre||'').toLowerCase() : '';
-        var propTel    = prop ? [prop.tel1,prop.tel2,prop.tel3].filter(Boolean).join(' ') : '';
-        var match = (a.ref||'').toLowerCase().includes(ql)
-          || (a.refAnterior||'').toLowerCase().includes(ql)
-          || (a.direccion||'').toLowerCase().includes(ql)
-          || (a.municipio||'').toLowerCase().includes(ql)
-          || (a.zona||'').toLowerCase().includes(ql)
-          || (a.observaciones||'').toLowerCase().includes(ql)
-          || propNombre.includes(ql)
-          || propTel.includes(ql);
-        if (match) resultados.push({a:a, t:t, i:i});
-      });
-    });
-
-    if (resultados.length === 0) {
-      bodyHTML = '<div class="empty-state">Sin resultados para <strong>' + escH(q) + '</strong></div>';
-    } else {
-      var countText = resultados.length + ' resultado' + (resultados.length !== 1 ? 's' : '') + ' en toda la cartera';
-      var cards = resultados.map(function(r) {
-        var a = r.a;
-        var bc = FASE_COLOR[a.estadoComercial] || '#94a3b8';
-        var bt = FASE_TEXT[a.estadoComercial]  || '#fff';
-        var sup = a.superficieTotal || a.superficie || a.superficieConstruida || '';
-        var prop = (DB.propietarios||[]).find(function(p) { return p.id === a.propietarioId; });
-        var metaHTML = '';
-        if (sup)              metaHTML += '<span>&#128208; ' + escH(sup) + ' m²</span>';
-        if (a.precioVenta)    metaHTML += '<span>&#128182; ' + eur(a.precioVenta) + '</span>';
-        if (a.precioAlquiler) metaHTML += '<span>&#128273; ' + eur(a.precioAlquiler) + '/mes</span>';
-        if (prop)             metaHTML += '<span>&#128100; ' + escH(prop.nombre) + '</span>';
-        return '<div style="border:1px solid #e2e8f0;border-left:4px solid ' + tipoColor[r.t] + ';border-radius:10px;padding:14px 18px;background:#fff;margin-bottom:8px;display:flex;justify-content:space-between;align-items:flex-start;gap:10px">'
-          + '<div style="flex:1">'
-          + '<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:5px">'
-          + '<span style="font-weight:800;color:#0f4c5c;font-size:14px;cursor:pointer" data-ref="' + escH(a.ref) + '" onclick="openAssetDetail(this.dataset.ref)">' + escH(a.ref) + '</span>'
-          + '<span style="background:' + tipoColor[r.t] + ';color:#fff;font-size:10px;font-weight:700;padding:1px 7px;border-radius:4px">' + tipoLabel[r.t] + '</span>'
-          + '<span style="background:' + bc + ';color:' + bt + ';font-size:10px;font-weight:700;padding:2px 8px;border-radius:20px">' + escH(a.estadoComercial||'Captaci\u00f3n') + '</span>'
-          + '</div>'
-          + '<div style="font-size:13px;font-weight:600;color:#1e293b;margin-bottom:4px">' + escH(a.direccion||'') + (a.municipio ? ' · ' + escH(a.municipio) : '') + '</div>'
-          + '<div style="font-size:12px;color:#64748b;display:flex;gap:12px;flex-wrap:wrap">' + metaHTML + '</div>'
-          + '</div>'
-          + '<div style="display:flex;gap:5px;flex-shrink:0">'
-          + '<button class="btn-sm btn-blue" data-idx="' + r.i + '" data-tipo="' + r.t + '" onclick="openEdit(parseInt(this.dataset.idx),this.dataset.tipo)">&#9999;&#65039;</button>'
-          + '<button class="btn-sm btn-red" data-idx="' + r.i + '" data-tipo="' + r.t + '" onclick="deleteAsset(parseInt(this.dataset.idx),this.dataset.tipo)">&#128465;</button>'
-          + '</div>'
-          + '</div>';
-      }).join('');
-      bodyHTML = '<div style="font-size:11px;color:#94a3b8;margin-bottom:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px">' + countText + '</div>' + cards;
-    }
-
-  } else {
-    var gruposHTML = '';
-    TIPOS.forEach(function(t) {
-      var list = DB[t] || [];
-      if (list.length === 0) return;
-      var captacion = list.filter(function(a) { return a.estadoComercial === 'Captaci\u00f3n'; }).length;
-      var publicado  = list.filter(function(a) { return a.estadoComercial === 'Publicado'; }).length;
-      var firmado    = list.filter(function(a) { return a.estadoComercial === 'Firmado'; }).length;
-      var archivado  = list.filter(function(a) { return a.estadoComercial === 'Archivado'; }).length;
-      var bHTML = '';
-      if (captacion > 0) bHTML += '<span style="background:#f59e0b;color:#fff;font-size:11px;font-weight:700;padding:2px 9px;border-radius:20px">' + captacion + ' Captaci\u00f3n</span> ';
-      if (publicado > 0) bHTML += '<span style="background:#10b981;color:#fff;font-size:11px;font-weight:700;padding:2px 9px;border-radius:20px">' + publicado + ' Publicado</span> ';
-      if (firmado > 0)   bHTML += '<span style="background:#0f4c5c;color:#fff;font-size:11px;font-weight:700;padding:2px 9px;border-radius:20px">' + firmado + ' Firmado</span> ';
-      if (archivado > 0) bHTML += '<span style="background:#e2e8f0;color:#94a3b8;font-size:11px;font-weight:700;padding:2px 9px;border-radius:20px">' + archivado + ' Archivado</span> ';
-      gruposHTML += '<div style="border:1px solid #e2e8f0;border-left:4px solid ' + tipoColor[t] + ';border-radius:10px;padding:16px 20px;background:#fff;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;cursor:pointer;transition:box-shadow 0.15s" data-tipo="' + t + '" onclick="switchTab(this.dataset.tipo)" onmouseover="this.style.boxShadow=\'0 4px 16px rgba(0,0,0,0.08)\'" onmouseout="this.style.boxShadow=\'\'">'
-        + '<div style="display:flex;align-items:center;gap:12px">'
-        + '<span style="font-size:22px">' + tipoEmoji[t] + '</span>'
-        + '<div>'
-        + '<div style="font-size:15px;font-weight:800;color:#0f4c5c">' + tipoLabelPlural[t] + '</div>'
-        + '<div style="font-size:12px;color:#64748b;margin-top:3px">' + list.length + ' propiedad' + (list.length !== 1 ? 'es' : '') + '</div>'
-        + '</div></div>'
-        + '<div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center">' + bHTML
-        + '<span style="font-size:20px;color:#cbd5e1;margin-left:4px">&#8250;</span>'
-        + '</div></div>';
-    });
-    if (!gruposHTML) {
-      gruposHTML = '<div class="empty-state" style="padding:48px 0">No hay propiedades registradas todav\u00eda.</div>';
-    }
-    bodyHTML = '<div style="font-size:11px;color:#94a3b8;margin-bottom:12px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px">'
-      + totalActivos + ' propiedad' + (totalActivos !== 1 ? 'es' : '') + ' en cartera'
-      + '</div>'
-      + '<div style="display:flex;flex-direction:column;gap:10px">' + gruposHTML + '</div>';
-  }
+  // Buscador global (mount estable)
+  var searchHTML = '<div id="homeSearchMount" style="margin-bottom:24px"></div><div id="homeResultsArea"></div>';
 
   document.getElementById('content').innerHTML =
     '<div style="font-size:22px;font-weight:800;color:#0f4c5c;margin-bottom:20px">Inicio</div>'
@@ -3251,6 +3062,7 @@ function renderHome(busqueda) {
   renderHomeResults();
 }
 
+var _homeSearchQuery = '';
 function onHomeSearch(val) {
   _homeSearchQuery = val || '';
   renderHomeResults();
@@ -3525,16 +3337,12 @@ function renderProspeccion() {
     const d = leadEditIdx !== null ? (DB.leads[leadEditIdx] || {}) : {};
     area.innerHTML = `
     <div style="max-width:860px;margin:0 auto;padding:20px 16px">
-      <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px">
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:20px">
         <span onclick="cerrarLeadForm()" style="cursor:pointer;color:var(--teal);font-weight:700;display:flex;align-items:center;gap:4px;padding:4px 10px;background:#f0f9fc;border:1px solid #bde0ed;border-radius:20px;font-size:13px">🏠 Inicio</span>
         <span style="color:#94a3b8">›</span>
         <span onclick="doSwitchTab('prospeccion')" style="cursor:pointer;color:var(--teal);font-weight:700;padding:4px 10px;background:#fff7ed;border:1px solid #fed7aa;border-radius:20px;font-size:13px">🔍 Prospección</span>
         <span style="color:#94a3b8">›</span>
         <span style="color:#c2410c;font-weight:700;font-size:13px">${leadEditIdx!==null ? 'Editar lead' : 'Nuevo lead'}</span>
-      </div>
-      <div style="position:relative;margin-bottom:18px">
-        <span style="position:absolute;left:12px;top:50%;transform:translateY(-50%);color:#94a3b8;font-size:15px">🔍</span>
-        <input type="text" value="${escH(leadSearchText)}" placeholder="Buscar por nombre, teléfono, email, zona..." oninput="leadSearchText=this.value;cerrarLeadForm();renderProspeccion()" style="width:100%;padding:10px 14px 10px 36px;border-radius:10px;border:1.5px solid #fed7aa;font-size:14px;font-family:inherit;background:#fffbf7;box-sizing:border-box;outline:none" onfocus="this.style.borderColor='#c2410c'" onblur="this.style.borderColor='#fed7aa'">
       </div>
       <div style="background:#fff;border-radius:14px;border:1px solid var(--border);padding:28px 24px;box-shadow:var(--shadow)">
         <div style="font-size:13px;font-weight:800;color:var(--teal);margin-bottom:20px;letter-spacing:0.2px">${leadEditIdx!==null ? '✏️ Editar lead · '+escH(d.ref||'') : '➕ Nuevo lead de prospección'}</div>
@@ -3674,14 +3482,8 @@ function renderProspeccion() {
       </div>
     </div>
 
-    <!-- Buscador -->
-    <div style="margin-bottom:12px">
-      <div style="position:relative">
-        <span style="position:absolute;left:12px;top:50%;transform:translateY(-50%);color:#94a3b8;font-size:15px">🔍</span>
-        <input type="text" id="leadSearchInput" value="${escH(leadSearchText)}" placeholder="Buscar por nombre, teléfono, email, zona..." oninput="leadSearchText=this.value;filtrarLeadsLista()" style="width:100%;padding:10px 14px 10px 36px;border-radius:10px;border:1.5px solid #fed7aa;font-size:14px;font-family:inherit;background:#fffbf7;box-sizing:border-box;outline:none" onfocus="this.style.borderColor='#c2410c'" onblur="this.style.borderColor='#fed7aa'">
-        ${leadSearchText ? `<span onclick="leadSearchText='';document.getElementById('leadSearchInput').value='';filtrarLeadsLista()" style="position:absolute;right:12px;top:50%;transform:translateY(-50%);cursor:pointer;color:#94a3b8;font-size:18px;line-height:1" title="Limpiar búsqueda">×</span>` : ''}
-      </div>
-    </div>
+    <!-- Buscador (mount estable) -->
+    <div id="leadBuscadorMount" style="margin-bottom:12px"></div>
 
     <!-- Toolbar -->
     <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:16px">
@@ -3723,7 +3525,7 @@ function renderProspeccion() {
     </div>
 
     <!-- Lista de leads -->
-    <div id="leadsListaContainer">
+    <div id='leadsListaContainer'>
     ${lista.length === 0 ? `
     <div style="text-align:center;padding:60px 20px;color:var(--muted)">
       <div style="font-size:40px;margin-bottom:12px">🔍</div>
@@ -3768,97 +3570,88 @@ function renderProspeccion() {
         </div>`;
       }).join('')}
     </div>`}
-    </div>`;
-  // Close leadsListaContainer in the HTML string above
-  // Re-attach the container closing
+    </div>
+  </div>`;
   mountLeadBuscador();
 }
 
 
 function mountLeadBuscador() {
   const mount = document.getElementById('leadBuscadorMount');
-  if(!mount) return;
-  // If input already exists and is focused, don't recreate it
-  const existing = document.getElementById('leadSearchInput');
-  if(existing) { filtrarLeadsLista(); return; }
-  // Build DOM element (not innerHTML) so it never loses focus on re-render
+  if (!mount) return;
+  if (document.getElementById('leadSearchInput')) { filtrarLeadsLista(); return; }
   const wrap = document.createElement('div');
   wrap.style.cssText = 'position:relative';
   const icon = document.createElement('span');
   icon.textContent = '🔍';
   icon.style.cssText = 'position:absolute;left:12px;top:50%;transform:translateY(-50%);color:#94a3b8;font-size:15px;pointer-events:none';
   const inp = document.createElement('input');
-  inp.type = 'text';
-  inp.id = 'leadSearchInput';
-  inp.value = leadSearchText;
+  inp.type = 'text'; inp.id = 'leadSearchInput'; inp.value = leadSearchText;
   inp.placeholder = 'Buscar por nombre, teléfono, email, zona...';
   inp.style.cssText = 'width:100%;padding:10px 14px 10px 36px;border-radius:10px;border:1.5px solid #fed7aa;font-size:14px;font-family:inherit;background:#fffbf7;box-sizing:border-box;outline:none';
-  inp.addEventListener('focus', () => inp.style.borderColor = '#c2410c');
-  inp.addEventListener('blur', () => inp.style.borderColor = '#fed7aa');
+  inp.addEventListener('focus', () => { inp.style.borderColor='#c2410c'; });
+  inp.addEventListener('blur', () => { inp.style.borderColor='#fed7aa'; });
   inp.addEventListener('input', () => { leadSearchText = inp.value; filtrarLeadsLista(); });
-  inp.addEventListener('keydown', e => { if(e.key==='Escape'){ leadSearchText=''; inp.value=''; filtrarLeadsLista(); } });
-  wrap.appendChild(icon);
-  wrap.appendChild(inp);
+  inp.addEventListener('keydown', e => { if(e.key==='Escape'){ leadSearchText=''; inp.value=''; filtrarLeadsLista(); }});
+  wrap.appendChild(icon); wrap.appendChild(inp);
   mount.appendChild(wrap);
   filtrarLeadsLista();
 }
+
 function filtrarLeadsLista() {
   const leads = DB.leads || [];
   const q = leadSearchText.toLowerCase();
-  const lista = leads.filter((l,i) => {
+  const lista = leads.filter(l => {
     if(leadFiltEstado && l.estado !== leadFiltEstado) return false;
     if(leadFiltFuente && l.fuente !== leadFiltFuente) return false;
     if(leadFiltTipo && l.tipoActivo !== leadFiltTipo) return false;
-    if(leadFiltPerfil === 'Particular' && !(l.perfil==='Particular' || l.perfil==='Propietario directo')) return false;
-    if(leadFiltPerfil === 'Profesional' && (l.perfil==='Particular' || l.perfil==='Propietario directo' || !l.perfil)) return false;
+    if(leadFiltPerfil === 'Particular' && !(l.perfil==='Particular'||l.perfil==='Propietario directo')) return false;
+    if(leadFiltPerfil === 'Profesional' && (l.perfil==='Particular'||l.perfil==='Propietario directo'||!l.perfil)) return false;
     if(leadFiltOperacion && l.operacion !== leadFiltOperacion) return false;
     if(q) {
-      const haystack = [l.nombre||'', l.telefono||'', l.email||'', l.ref||'', l.zona||'', l.direccion||''].join(' ').toLowerCase();
-      if(!haystack.includes(q)) return false;
+      const h = [l.nombre||'',l.telefono||'',l.email||'',l.ref||'',l.zona||'',l.direccion||''].join(' ').toLowerCase();
+      if(!h.includes(q)) return false;
     }
     return true;
   });
   const container = document.getElementById('leadsListaContainer');
   if(!container) { renderProspeccion(); return; }
-  if(lista.length === 0) {
-    container.innerHTML = '<div style="text-align:center;padding:60px 20px;color:var(--muted)"><div style="font-size:40px;margin-bottom:12px">🔍</div><div style="font-size:16px;font-weight:700;margin-bottom:6px">Sin resultados</div><div style="font-size:13px">No hay leads que coincidan con la búsqueda.</div></div>';
+  if(!lista.length) {
+    container.innerHTML = '<div style="text-align:center;padding:60px 20px;color:var(--muted)"><div style="font-size:40px;margin-bottom:12px">🔍</div><div style="font-size:16px;font-weight:700;margin-bottom:6px">Sin resultados</div><div style="font-size:13px">No hay leads que coincidan.</div></div>';
     return;
   }
-  container.innerHTML = lista.map((l) => {
+  const EST_COLOR = {'Nuevo':'#f59e0b','En seguimiento':'#3b82f6','Contactado':'#8b5cf6','Convertido a captación':'#10b981','Descartado':'#94a3b8'};
+  container.innerHTML = lista.map(l => {
     const realIdx = leads.indexOf(l);
     const hoy = new Date(); hoy.setHours(0,0,0,0);
     const vencido = l.proximoContacto && new Date(l.proximoContacto+'T00:00') < hoy;
-    const EST_COLOR = {'Nuevo':'#f59e0b','En seguimiento':'#3b82f6','Contactado':'#8b5cf6','Convertido a captación':'#10b981','Descartado':'#94a3b8'};
     const bc = EST_COLOR[l.estado]||'#94a3b8';
-    return '<div style="background:#fff;border-radius:12px;border:1px solid var(--border);padding:16px 20px;box-shadow:var(--shadow);display:flex;justify-content:space-between;align-items:flex-start;gap:12px">'
-      + '<div style="flex:1;min-width:0">'
-      + '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:6px">'
-      + '<span style="font-size:11px;font-weight:800;color:var(--teal);background:#f0f9fc;padding:2px 8px;border-radius:6px">' + escH(l.ref||'—') + '</span>'
-      + '<span style="background:'+bc+';color:#fff;font-size:11px;font-weight:700;padding:2px 9px;border-radius:20px">' + escH(l.estado||'Nuevo') + '</span>'
-      + (l.tipoActivo ? '<span style="background:#f1f5f9;color:#475569;font-size:11px;font-weight:600;padding:2px 8px;border-radius:6px">' + escH(l.tipoActivo) + '</span>' : '')
-      + (l.operacion ? '<span style="background:#f1f5f9;color:#475569;font-size:11px;font-weight:600;padding:2px 8px;border-radius:6px">' + escH(l.operacion) + '</span>' : '')
-      + '</div>'
-      + '<div style="font-weight:700;font-size:14px;color:#1e293b;margin-bottom:4px">'
-      + escH(l.zona || l.direccion || l.municipio || 'Sin ubicación')
-      + (l.superficie ? ' · <span style="color:var(--teal)">' + escH(l.superficie) + ' m²</span>' : '')
-      + '</div>'
-      + '<div style="display:flex;gap:12px;flex-wrap:wrap;font-size:12px;color:var(--muted)">'
-      + (l.precio ? '<span>💶 ' + escH(l.precio) + '</span>' : '')
-      + (l.telefono ? '<span>📞 <a href="tel:' + escH(l.telefono) + '" style="color:var(--teal)">' + escH(l.telefono) + '</a></span>' : '')
-      + (l.nombre ? '<span>👤 ' + escH(l.nombre) + '</span>' : '')
-      + '<span style="color:' + (l.perfil==='Propietario directo'?'#10b981':l.perfil==='Inversor'?'#7c3aed':'#f59e0b') + ';font-weight:600">' + escH(l.perfil||'—') + '</span>'
-      + renderOrigenBadge(l.origen||'Laura')
-      + (l.fecha ? '<span>📅 ' + escH(l.fecha) + '</span>' : '')
-      + renderFechaBadge(vencido, l.proximoContacto)
-      + '</div>'
-      + (l.obs ? '<div style="font-size:12px;color:var(--muted);margin-top:4px;font-style:italic">' + escH(l.obs) + '</div>' : '')
-      + '</div>'
-      + '<div style="display:flex;flex-direction:column;gap:6px;align-items:flex-end">'
-      + '<button onclick="editarLead('+realIdx+')" style="padding:6px 12px;border-radius:7px;border:1.5px solid var(--border);background:#f8fafc;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;color:var(--teal)">✏️ Editar</button>'
-      + (l.estado !== 'Convertido a captación' && l.estado !== 'Descartado' ? '<button onclick="convertirACaptacion('+realIdx+')" style="padding:6px 12px;border-radius:7px;border:none;background:#10b981;color:#fff;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit">✅ Captar</button>' : '')
-      + '<button onclick="eliminarLead('+realIdx+')" style="padding:6px 12px;border-radius:7px;border:1.5px solid #fca5a5;background:#fff;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;color:#ef4444">🗑</button>'
-      + '</div>'
-      + '</div>';
+    return '<div style="background:#fff;border-radius:12px;border:1px solid var(--border);padding:16px 20px;box-shadow:0 1px 4px rgba(0,0,0,0.06);display:flex;justify-content:space-between;align-items:flex-start;gap:12px">'
+      +'<div style="flex:1;min-width:0">'
+      +'<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:6px">'
+      +'<span style="font-size:11px;font-weight:800;color:#0f4c5c;background:#f0f9fc;padding:2px 8px;border-radius:6px">'+escH(l.ref||'—')+'</span>'
+      +'<span style="background:'+bc+';color:#fff;font-size:11px;font-weight:700;padding:2px 9px;border-radius:20px">'+escH(l.estado||'Nuevo')+'</span>'
+      +(l.tipoActivo?'<span style="background:#f1f5f9;color:#475569;font-size:11px;font-weight:600;padding:2px 8px;border-radius:6px">'+escH(l.tipoActivo)+'</span>':'')
+      +(l.operacion?'<span style="background:#f1f5f9;color:#475569;font-size:11px;font-weight:600;padding:2px 8px;border-radius:6px">'+escH(l.operacion)+'</span>':'')
+      +'</div>'
+      +'<div style="font-weight:700;font-size:14px;color:#1e293b;margin-bottom:4px">'+escH(l.zona||l.direccion||'Sin ubicación')+(l.superficie?' · <span style=\"color:#0f4c5c\">'+escH(l.superficie)+' m²</span>':'')+'</div>'
+      +'<div style="display:flex;gap:12px;flex-wrap:wrap;font-size:12px;color:#64748b">'
+      +(l.precio?'<span>💶 '+escH(l.precio)+'</span>':'')
+      +(l.telefono?'<span>📞 <a href=\"tel:'+escH(l.telefono)+'\" style=\"color:#0f4c5c\">'+escH(l.telefono)+'</a></span>':'')
+      +(l.nombre?'<span>👤 '+escH(l.nombre)+'</span>':'')
+      +'<span style="color:'+(l.perfil==='Propietario directo'?'#10b981':l.perfil==='Inversor'?'#7c3aed':'#f59e0b')+';font-weight:600">'+escH(l.perfil||'—')+'</span>'
+      +renderOrigenBadge(l.origen||'Laura')
+      +(l.fecha?'<span>📅 '+escH(l.fecha)+'</span>':'')
+      +renderFechaBadge(vencido, l.proximoContacto)
+      +'</div>'
+      +(l.obs?'<div style="font-size:12px;color:#64748b;margin-top:4px;font-style:italic">'+escH(l.obs)+'</div>':'')
+      +'</div>'
+      +'<div style="display:flex;flex-direction:column;gap:6px;align-items:flex-end">'
+      +'<button onclick="editarLead('+realIdx+')" style="padding:6px 12px;border-radius:7px;border:1.5px solid #e2e8f0;background:#f8fafc;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;color:#0f4c5c">✏️ Editar</button>'
+      +(l.estado!=='Convertido a captación'&&l.estado!=='Descartado'?'<button onclick="convertirACaptacion('+realIdx+')" style="padding:6px 12px;border-radius:7px;border:none;background:#10b981;color:#fff;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit">✅ Captar</button>':'')
+      +'<button onclick="eliminarLead('+realIdx+')" style="padding:6px 12px;border-radius:7px;border:1.5px solid #fca5a5;background:#fff;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;color:#ef4444">🗑</button>'
+      +'</div>'
+      +'</div>';
   }).join('');
 }
 
