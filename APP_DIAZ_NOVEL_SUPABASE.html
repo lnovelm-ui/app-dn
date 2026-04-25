@@ -1505,13 +1505,14 @@ function assetCardHTML(a, tipo, realIdx) {
             var btnContacto = '<button onclick="registrarContactoCaptacion(\''+escH(a.ref)+'\',\''+tipo+'\','+realIdx+')" style="padding:6px 11px;border-radius:7px;border:1px solid #bde0ed;background:#f0f9fc;color:#0f4c5c;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit">📞 Registrar contacto</button>';
             var btnCaptado = ec!=='Descartado'?'<button onclick="pasarAActivoPublicado(\''+escH(a.ref)+'\',\''+tipo+'\','+realIdx+')" style="padding:6px 11px;border-radius:7px;border:none;background:#10b981;color:#fff;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit">✅ Captado</button>':'';
             var btnDescartar = ec!=='Descartado'&&ec!=='Captado'?'<button onclick="descartarCaptacion(\''+escH(a.ref)+'\',\''+tipo+'\','+realIdx+')" style="padding:6px 11px;border-radius:7px;border:1px solid #fca5a5;background:#fff;color:#ef4444;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit">🚫 Descartar</button>':'';
+            var btnVolverProspeccion = '<button onclick="volverAProspeccion(\''+escH(a.ref)+'\',\''+tipo+'\','+realIdx+')" style="padding:6px 11px;border-radius:7px;border:1px solid #c2410c;background:#fff7ed;color:#c2410c;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit">↩ Volver a Prospección</button>';
             return '<div style="margin-top:10px;border-top:1px dashed #e2e8f0;padding-top:10px">'
               + '<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;flex-wrap:wrap">'
               + '<span style="font-size:11px;font-weight:700;background:'+ecColor+'22;color:'+ecColor+';border:1px solid '+ecColor+'44;border-radius:20px;padding:3px 10px">'+ecIcon+' '+escH(ec)+'</span>'
               + '</div>'
               + histHTML
               + '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px">'
-              + btnWA + btnContacto + btnCaptado + btnDescartar
+              + btnWA + btnContacto + btnCaptado + btnDescartar + btnVolverProspeccion
               + '</div>'
               + '</div>';
           })()}
@@ -4028,6 +4029,62 @@ function pasarAActivoPublicado(ref, tipo, realIdx) {
   alert('¡Captado! Activo registrado como ' + a.ref + ' en estado Publicado.\nRef. CAP anterior: ' + a.refAnterior);
   doSwitchTab(tipo);
 }
+function volverAProspeccion(ref, tipo, realIdx) {
+  if(!confirm('¿Devolver este activo a Prospección?\nSe creará un nuevo lead con sus datos y el activo se eliminará de Captación.')) return;
+  var a = DB[tipo][realIdx];
+  if(!a) return;
+
+  // Recuperar datos del propietario si está vinculado
+  var prop = (DB.propietarios||[]).find(function(p){ return p.id === a.propietarioId; });
+
+  // Mapeo inverso de tipo
+  var tipoActivo = tipo === 'naves' ? 'Nave industrial' : tipo === 'oficinas' ? 'Oficina' : 'Local comercial';
+
+  // Precio: usar el que corresponda a la operación
+  var precio = '';
+  if(a.tipoOperacion === 'Alquiler') precio = a.precioAlquiler || '';
+  else if(a.tipoOperacion === 'Venta') precio = a.precioVenta || '';
+  else precio = a.precioVenta || a.precioAlquiler || '';
+
+  var lead = {
+    ref: genLeadRef(),
+    origen: a.prospectadoPor || 'Laura',
+    fuente: a.leadFuente || 'Otro',
+    fecha: new Date().toISOString().slice(0,10),
+    semana: getWeekLabel(),
+    tipoActivo: tipoActivo,
+    operacion: a.tipoOperacion || 'Venta',
+    perfil: a.leadPerfil || 'Por determinar',
+    zona: [a.zona, a.municipio].filter(Boolean).join(' · '),
+    direccion: a.direccion || '',
+    superficie: a.superficieTotal || a.superficie || a.superficieConstruida || '',
+    precio: precio,
+    nombre: prop ? prop.nombre : (a.leadNombre || ''),
+    telefono: prop ? prop.tel1 : (a.leadTelefono || ''),
+    email: prop ? prop.email : (a.leadEmail || ''),
+    estado: 'Nuevo',
+    enlace: a.enlaceWeb || '',
+    proximoContacto: '',
+    obs: [
+      a.observaciones || '',
+      a.leadOrigen ? 'Ref. original: ' + a.leadOrigen : '',
+      'Captación revertida desde ' + ref
+    ].filter(Boolean).join(' · '),
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString()
+  };
+
+  if(!DB.leads) DB.leads = [];
+  DB.leads.unshift(lead);
+
+  // Eliminar de captación
+  DB[tipo].splice(realIdx, 1);
+
+  saveDB();
+  alert('Lead ' + lead.ref + ' creado en Prospección.\nEl activo ' + ref + ' ha sido eliminado de Captación.');
+  doSwitchTab('prospeccion');
+}
+
 function exportarLeadsCSV() {
   const leads = DB.leads || [];
   if(!leads.length) { alert('No hay leads para exportar.'); return; }
