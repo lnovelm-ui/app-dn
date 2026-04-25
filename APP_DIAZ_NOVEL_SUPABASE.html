@@ -912,6 +912,7 @@ function commonFields(d={}) {
     <div class="field span3"><label>Dirección *</label><input id="f_direccion" value="${escH(d.direccion||'')}" oninput="markDirty()"></div>
     <div class="field"><label>Ref. Catastral</label><input id="f_refCatastral" value="${escH(d.refCatastral||'')}" oninput="markDirty()"></div>
     <div class="field"><label>Fecha de Captación</label><input type="date" id="f_fechaCaptacion" value="${escH(d.fechaCaptacion||'')}" onchange="markDirty()"></div>
+    <div class="field"><label>Prospectado por</label><select id="f_prospectadoPor" onchange="markDirty()"><option value=""${!d.prospectadoPor?' selected':''}>Sin asignar</option><option value="Francisco"${d.prospectadoPor==='Francisco'?' selected':''}>Francisco</option><option value="Laura"${d.prospectadoPor==='Laura'?' selected':''}>Laura</option></select></div>
     <input type="hidden" id="f_refAnterior" value="${escH(d.refAnterior||'')}">
     <div class="section-divider">Operación</div>
     <div class="field">
@@ -1110,6 +1111,7 @@ function getCommonData() {
     provincia: fv('f_provincia'), municipio: fv('f_municipio'), zona: fvn('f_zona'),
     direccion: fv('f_direccion'), refCatastral: fv('f_refCatastral'),
     fechaCaptacion: fv('f_fechaCaptacion'),
+    prospectadoPor: fv('f_prospectadoPor')||'',
     refAnterior: fv('f_refAnterior')||'',
     tipoOperacion: fv('f_tipoOperacion'),
     precioVenta: getPriceVal('f_precioVenta'),
@@ -1443,16 +1445,24 @@ function assetCardHTML(a, tipo, realIdx) {
             ${a.certEnergetico?`<span>⚡ Cert.${escH(a.certEnergetico)}</span>`:''}
           </div>
           ${prop
-  ? `<div class="card-prop" style="display:flex;align-items:center;gap:8px;margin-top:4px">
+  ? `<div class="card-prop" style="display:flex;align-items:center;gap:8px;margin-top:4px;flex-wrap:wrap">
        <span style="font-size:11px;color:#0f4c5c;font-weight:700">👤 ${escH(prop.nombre)}</span>
        ${prop.tel1?`<a href="tel:${escH(prop.tel1)}" style="font-size:11px;color:#1a6678;font-weight:600;text-decoration:none;background:#e0f2f7;border-radius:5px;padding:1px 8px" onclick="event.stopPropagation()">📞 ${escH(prop.tel1)}</a>`:''}
        ${prop.tel2?`<a href="tel:${escH(prop.tel2)}" style="font-size:11px;color:#1a6678;font-weight:600;text-decoration:none;background:#e0f2f7;border-radius:5px;padding:1px 8px" onclick="event.stopPropagation()">📞 ${escH(prop.tel2)}</a>`:''}
      </div>`
   : (function(){
-      var html = '<div style="margin-top:4px;display:flex;align-items:center;gap:8px;flex-wrap:wrap">';
-      if(a.leadNombre) html += '<span style="font-size:11px;color:#0f4c5c;font-weight:700">&#128100; '+escH(a.leadNombre)+'</span>';
-      if(a.leadTelefono) html += '<a href="tel:'+escH(a.leadTelefono)+'" style="font-size:11px;color:#1a6678;font-weight:600;text-decoration:none;background:#e0f2f7;border-radius:5px;padding:1px 8px" onclick="event.stopPropagation()">&#128222; '+escH(a.leadTelefono)+'</a>';
-      html += '<span onclick="openEdit(' + realIdx + ',&quot;' + tipo + '&quot;)" style="font-size:10px;color:#f97316;font-weight:700;cursor:pointer;background:#fff7ed;border:1px solid #fed7aa;border-radius:5px;padding:1px 9px">&#9888; Vincular</span>';
+      var html = '<div style="margin-top:6px;background:#fff7ed;border:1px solid #fed7aa;border-radius:8px;padding:8px 12px;display:flex;flex-direction:column;gap:4px">';
+      html += '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">';
+      if(a.leadNombre) html += '<span style="font-size:12px;color:#0f4c5c;font-weight:700">&#128100; '+escH(a.leadNombre)+'</span>';
+      if(a.leadTelefono) html += '<a href="tel:'+escH(a.leadTelefono)+'" style="font-size:12px;color:#1a6678;font-weight:700;text-decoration:none;background:#e0f2f7;border-radius:5px;padding:2px 10px" onclick="event.stopPropagation()">&#128222; '+escH(a.leadTelefono)+'</a>';
+      if(a.leadEmail) html += '<span style="font-size:11px;color:#64748b">✉️ '+escH(a.leadEmail)+'</span>';
+      html += '</div>';
+      var meta = [];
+      if(a.leadPerfil) meta.push('<span style="font-size:11px;color:#7c3aed;font-weight:600">'+escH(a.leadPerfil)+'</span>');
+      if(a.leadFuente) meta.push('<span style="font-size:11px;color:#64748b">📍 '+escH(a.leadFuente)+'</span>');
+      if(a.prospectadoPor) meta.push('<span style="font-size:11px;font-weight:700;color:'+(a.prospectadoPor==='Laura'?'#7c3aed':'#0f4c5c')+'">Prospectado: '+escH(a.prospectadoPor)+'</span>');
+      if(meta.length) html += '<div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:2px">'+meta.join('')+'</div>';
+      html += '<div style="margin-top:4px"><span onclick="openEdit('+realIdx+',&quot;'+tipo+'&quot;)" style="font-size:10px;color:#f97316;font-weight:700;cursor:pointer;background:#fff;border:1px solid #fed7aa;border-radius:5px;padding:2px 9px">&#9888; Vincular propietario</span></div>';
       html += '</div>';
       return html;
     })()
@@ -1464,6 +1474,47 @@ function assetCardHTML(a, tipo, realIdx) {
           ${a.refCatastral?`<div class="card-catastro">Catastro: ${escH(a.refCatastral)}</div>`:''}
           ${a.observaciones?`<div class="card-obs">${escH(a.observaciones)}</div>`:''}
           ${a.enlaceWeb?`<div style="margin-top:6px"><a href="${escH(a.enlaceWeb)}" target="_blank" rel="noopener" style="display:inline-flex;align-items:center;gap:5px;background:#f0f9fc;border:1px solid #bde0ed;border-radius:6px;padding:4px 12px;font-size:12px;font-weight:700;color:#0f4c5c;text-decoration:none">🔗 Ver anuncio</a></div>`:''}
+          ${prop && a.prospectadoPor ? `<div style="margin-top:5px;font-size:11px;color:#64748b">Prospectado por: <span style="font-weight:700;color:${a.prospectadoPor==='Laura'?'#7c3aed':'#0f4c5c'}">${escH(a.prospectadoPor)}</span></div>` : ''}
+          ${(function(){
+            if(a.estadoComercial !== 'Captación') return '';
+            // Semáforo de estado captación
+            var ec = a.estadoCaptacion || 'Pendiente contacto';
+            var ecColor = ec==='Captado'?'#10b981':ec==='Descartado'?'#94a3b8':ec.includes('sin respuesta')?'#f59e0b':ec.includes('Contactado')?'#3b82f6':'#f97316';
+            var ecIcon = ec==='Captado'?'✅':ec==='Descartado'?'🚫':ec.includes('sin respuesta')?'⏳':ec.includes('Contactado')?'💬':'🔔';
+            // Historial de contactos
+            var contactos = a.contactosCaptacion || [];
+            var histHTML = '';
+            if(contactos.length > 0) {
+              histHTML = '<div style="margin-top:8px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:8px 12px">'
+                + '<div style="font-size:10px;font-weight:800;color:#0f4c5c;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px">📋 Historial de contactos</div>'
+                + contactos.map(function(c){
+                    var cIcon = c.canal==='WhatsApp'?'💬':c.canal==='Llamada'?'📞':'📝';
+                    var cColor = c.nota&&c.nota.startsWith('DESCARTADO')?'#ef4444':c.nota&&c.nota.startsWith('CAPTADO')?'#10b981':'#475569';
+                    return '<div style="font-size:11px;color:'+cColor+';padding:2px 0;display:flex;gap:6px;align-items:flex-start">'
+                      + '<span style="white-space:nowrap;font-weight:600">' + cIcon + ' ' + escH(c.fecha) + '</span>'
+                      + '<span>' + escH(c.nota||c.canal) + '</span>'
+                      + '</div>';
+                  }).join('')
+                + '</div>';
+            }
+            // Botones de acción captación
+            var prop2 = DB.propietarios.find(function(p){return p.id===a.propietarioId;});
+            var tel2 = (prop2&&prop2.tel1)?prop2.tel1:(a.leadTelefono||'');
+            var waIcon = tel2 ? '💬 WhatsApp' : '💬 Sin tel.';
+            var btnWA = '<button onclick="abrirWhatsAppCaptacion(\''+escH(a.ref)+'\',\''+tipo+'\','+realIdx+')" style="padding:6px 11px;border-radius:7px;border:none;background:#25d366;color:#fff;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit;display:flex;align-items:center;gap:4px">'+waIcon+'</button>';
+            var btnContacto = '<button onclick="registrarContactoCaptacion(\''+escH(a.ref)+'\',\''+tipo+'\','+realIdx+')" style="padding:6px 11px;border-radius:7px;border:1px solid #bde0ed;background:#f0f9fc;color:#0f4c5c;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit">📞 Registrar contacto</button>';
+            var btnCaptado = ec!=='Descartado'?'<button onclick="pasarAActivoPublicado(\''+escH(a.ref)+'\',\''+tipo+'\','+realIdx+')" style="padding:6px 11px;border-radius:7px;border:none;background:#10b981;color:#fff;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit">✅ Captado</button>':'';
+            var btnDescartar = ec!=='Descartado'&&ec!=='Captado'?'<button onclick="descartarCaptacion(\''+escH(a.ref)+'\',\''+tipo+'\','+realIdx+')" style="padding:6px 11px;border-radius:7px;border:1px solid #fca5a5;background:#fff;color:#ef4444;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit">🚫 Descartar</button>':'';
+            return '<div style="margin-top:10px;border-top:1px dashed #e2e8f0;padding-top:10px">'
+              + '<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;flex-wrap:wrap">'
+              + '<span style="font-size:11px;font-weight:700;background:'+ecColor+'22;color:'+ecColor+';border:1px solid '+ecColor+'44;border-radius:20px;padding:3px 10px">'+ecIcon+' '+escH(ec)+'</span>'
+              + '</div>'
+              + histHTML
+              + '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px">'
+              + btnWA + btnContacto + btnCaptado + btnDescartar
+              + '</div>'
+              + '</div>';
+          })()}
         </div>
         <div class="card-actions">
           <button class="btn-sm btn-green" onclick="openCruce(${realIdx},'${tipo}')">🔗</button>
@@ -3539,9 +3590,6 @@ function convertirACaptacion(idx) {
   var l = DB.leads[idx];
   if(!l) return;
 
-  DB.leads[idx].estado = 'Convertido a captación';
-  DB.leads[idx].convertidoAt = new Date().toISOString();
-
   var propietarioId = '';
   if(l.nombre || l.telefono) {
     var telNorm = (l.telefono||'').replace(/[\s\-]/g,'');
@@ -3571,49 +3619,170 @@ function convertirACaptacion(idx) {
   var tipoMap = {'Local comercial':'locales','Nave industrial':'naves','Oficina':'oficinas'};
   var tipo = tipoMap[l.tipoActivo] || 'locales';
   var precioLimpio = (l.precio||'').replace(/[^\d]/g,'');
-  var zonaParts = (l.zona||'').split('·');
-  var municipio = zonaParts[zonaParts.length-1].trim();
+
+  // Municipio: puede venir en l.municipio (campo explícito) o extraerse de l.zona
+  // El campo zona del lead tiene formato "Zona · Municipio" o solo "Zona"
+  var municipio = '';
+  if(l.municipio) {
+    municipio = l.municipio.trim();
+  } else if(l.zona) {
+    var zonaParts = l.zona.split('·');
+    // Si hay más de una parte, la última suele ser el municipio; si no, intentar extraer de zona
+    municipio = zonaParts.length > 1 ? zonaParts[zonaParts.length-1].trim() : '';
+  }
+  // Si sigue vacío, dejar en blanco para que Cisco lo rellene en la ficha
+  var zonaLimpia = l.zona || '';
 
   var nuevo = {
     ref: genRefCap(),
     provincia: 'Málaga',
     municipio: municipio,
-    zona: l.zona || '',
+    zona: zonaLimpia,
     direccion: l.direccion || '',
     tipoOperacion: l.operacion || 'Venta',
     precioVenta: (l.operacion === 'Venta' || l.operacion === 'Ambos') ? precioLimpio : '',
     precioAlquiler: (l.operacion === 'Alquiler' || l.operacion === 'Ambos') ? precioLimpio : '',
     superficie: l.superficie || '',
     superficieTotal: tipo === 'naves' ? (l.superficie || '') : '',
-    estadoContacto: 'Primer contacto',
+    estadoContacto: 'Sin contacto',
     estadoComercial: 'Captación',
+    estadoCaptacion: 'Pendiente contacto',
     documentacion: 'Pendiente',
     exclusiva: 'No',
     propietarioId: propietarioId,
     enlaceWeb: l.enlace || '',
     refCatastral: '',
-    observaciones: ['Lead: ' + l.ref + ' · ' + (l.fuente||''), l.prioridadCaptacion||'', l.fechaActualizacion||'', l.obs||''].filter(Boolean).join(' · '),
+    observaciones: [
+      'Lead: ' + l.ref + ' · ' + (l.fuente||''),
+      l.obs || '',
+      l.prioridadCaptacion || '',
+      l.fechaActualizacion || ''
+    ].filter(Boolean).join(' · '),
     honorariosTipo: 'porcentaje',
     honorariosPct: '',
     fechaCaptacion: new Date().toISOString().slice(0,10),
     leadOrigen: l.ref,
     leadNombre: l.nombre || '',
     leadTelefono: l.telefono || '',
+    leadEmail: l.email || '',
     leadPerfil: l.perfil || '',
+    leadFuente: l.fuente || '',
     leadPrecioAnterior: l.precioAnterior || '',
     leadPreciom2: l.preciom2 || '',
+    prospectadoPor: l.origen || 'Laura',
+    contactosCaptacion: [],
     createdAt: new Date().toISOString()
   };
 
   if(!DB[tipo]) DB[tipo] = [];
   DB[tipo].unshift(nuevo);
+
+  // Eliminar el lead de prospección (desaparece de la vista)
+  DB.leads.splice(idx, 1);
+
   saveDB();
 
   var propMsg = propietarioId
     ? '\nPropietario "' + (l.nombre||l.telefono) + '" creado y vinculado.'
     : '\nSin nombre ni teléfono — propietario no creado.';
-  alert('Lead convertido. Activo ' + nuevo.ref + ' creado en Captación.' + propMsg);
+  alert('Activo ' + nuevo.ref + ' creado en Captación.' + propMsg);
   openGlobalView('Captación');
+}
+
+// ── CAPTACIÓN: REGISTRAR CONTACTO ──────────────────────────────────────────
+function registrarContactoCaptacion(ref, tipo, realIdx) {
+  var a = DB[tipo][realIdx];
+  if(!a) return;
+  var fecha = new Date().toISOString().slice(0,10);
+  var nota = prompt('Nota sobre el contacto (opcional):', '');
+  if(nota === null) return; // cancelado
+  if(!a.contactosCaptacion) a.contactosCaptacion = [];
+  a.contactosCaptacion.push({
+    fecha: fecha,
+    canal: 'WhatsApp',
+    nota: nota || ''
+  });
+  a.estadoCaptacion = 'Contactado - sin respuesta';
+  DB[tipo][realIdx] = a;
+  saveDB();
+  openGlobalView('Captación');
+}
+
+function abrirWhatsAppCaptacion(ref, tipo, realIdx) {
+  var a = DB[tipo][realIdx];
+  if(!a) return;
+  var prop = (DB.propietarios||[]).find(function(p){ return p.id===a.propietarioId; });
+  var tel = (prop && prop.tel1) ? prop.tel1 : (a.leadTelefono||'');
+  var telLimpio = tel.replace(/[\s\-\+]/g,'');
+  if(telLimpio && telLimpio.length < 9) { alert('El número de teléfono no parece válido.'); return; }
+
+  var tipoActivo = ref.startsWith('CAP-') ? (tipo==='naves'?'nave industrial':(tipo==='locales'?'local comercial':'oficina')) : tipo;
+  var zona = a.direccion ? a.direccion + (a.municipio ? ', ' + a.municipio : '') : (a.municipio||a.zona||'la zona');
+  var msg = 'Buenos días, me llamo Francisco, soy agente inmobiliario especializado en activos terciarios en Málaga. He localizado su ' + tipoActivo + ' en ' + zona + ' y me gustaría comentarle una posibilidad que podría ser de su interés. ¿Tendría unos minutos esta semana?';
+
+  if(telLimpio) {
+    var url = 'https://wa.me/34' + telLimpio.replace(/^(\+?34)/, '') + '?text=' + encodeURIComponent(msg);
+    window.open(url, '_blank');
+    // Registrar el contacto automáticamente
+    if(!a.contactosCaptacion) a.contactosCaptacion = [];
+    a.contactosCaptacion.push({
+      fecha: new Date().toISOString().slice(0,10),
+      canal: 'WhatsApp',
+      nota: 'Mensaje inicial enviado'
+    });
+    a.estadoCaptacion = 'Contactado - sin respuesta';
+    DB[tipo][realIdx] = a;
+    saveDB();
+    openGlobalView('Captación');
+  } else {
+    // Sin teléfono: copiar mensaje al portapapeles
+    if(navigator.clipboard) {
+      navigator.clipboard.writeText(msg).then(function(){
+        alert('Sin teléfono registrado.\nMensaje copiado al portapapeles para que puedas enviarlo manualmente.');
+      });
+    } else {
+      prompt('Sin teléfono registrado. Copia el mensaje:', msg);
+    }
+  }
+}
+
+function descartarCaptacion(ref, tipo, realIdx) {
+  var motivo = prompt('Motivo del descarte (ej: no quiere agencia, precio no viable...):', '');
+  if(motivo === null) return;
+  var a = DB[tipo][realIdx];
+  if(!a) return;
+  a.estadoCaptacion = 'Descartado';
+  if(!a.contactosCaptacion) a.contactosCaptacion = [];
+  a.contactosCaptacion.push({
+    fecha: new Date().toISOString().slice(0,10),
+    canal: 'Gestión',
+    nota: 'DESCARTADO: ' + (motivo||'Sin motivo indicado')
+  });
+  DB[tipo][realIdx] = a;
+  saveDB();
+  openGlobalView('Captación');
+}
+
+function pasarAActivoPublicado(ref, tipo, realIdx) {
+  var a = DB[tipo][realIdx];
+  if(!a) return;
+  if(!confirm('¿Confirmar que el propietario acepta? El activo pasará a estado Publicado con nueva referencia.')) return;
+  // Cambiar estado a Publicado y generar nueva ref
+  a.refAnterior = a.ref;
+  a.ref = genRef(tipo);
+  a.estadoComercial = 'Publicado';
+  a.estadoCaptacion = 'Captado';
+  a.fechaPublicacion = new Date().toISOString().slice(0,10);
+  if(!a.contactosCaptacion) a.contactosCaptacion = [];
+  a.contactosCaptacion.push({
+    fecha: new Date().toISOString().slice(0,10),
+    canal: 'Gestión',
+    nota: 'CAPTADO — propietario acepta. Pasa a activo publicado con ref ' + a.ref
+  });
+  DB[tipo][realIdx] = a;
+  saveDB();
+  alert('¡Captado! Activo registrado como ' + a.ref + ' en estado Publicado.\nRef. CAP anterior: ' + a.refAnterior);
+  doSwitchTab(tipo);
 }
 function exportarLeadsCSV() {
   const leads = DB.leads || [];
