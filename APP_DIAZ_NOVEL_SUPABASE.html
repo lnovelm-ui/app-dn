@@ -2953,7 +2953,7 @@ function renderHomeResults() {
       if (publicado>0) bHTML += '<span style="background:#10b981;color:#fff;font-size:11px;font-weight:700;padding:2px 9px;border-radius:20px">'+publicado+' Publicado</span> ';
       if (firmado>0)   bHTML += '<span style="background:#0f4c5c;color:#fff;font-size:11px;font-weight:700;padding:2px 9px;border-radius:20px">'+firmado+' Firmado</span> ';
       if (archivado>0) bHTML += '<span style="background:#e2e8f0;color:#94a3b8;font-size:11px;font-weight:700;padding:2px 9px;border-radius:20px">'+archivado+' Archivado</span> ';
-      gruposHTML += '<div style="border:1px solid #e2e8f0;border-left:4px solid '+tipoColor[t]+';border-radius:10px;padding:16px 20px;background:#fff;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;cursor:pointer;transition:box-shadow 0.15s" data-tipo="'+t+'" onclick="switchTab(this.dataset.tipo)" onmouseover="this.style.boxShadow='0 4px 16px rgba(0,0,0,0.08)'" onmouseout="this.style.boxShadow=''">'
+      gruposHTML += '<div style="border:1px solid #e2e8f0;border-left:4px solid '+tipoColor[t]+';border-radius:10px;padding:16px 20px;background:#fff;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;cursor:pointer;transition:box-shadow 0.15s" data-tipo="'+t+'" onclick="switchTab(this.dataset.tipo)">'
         +'<div style="display:flex;align-items:center;gap:12px">'
         +'<span style="font-size:22px">'+tipoEmoji[t]+'</span>'
         +'<div><div style="font-size:15px;font-weight:800;color:#0f4c5c">'+tipoLabelPlural[t]+'</div>'
