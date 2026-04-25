@@ -1487,12 +1487,15 @@ function assetCardHTML(a, tipo, realIdx) {
             if(contactos.length > 0) {
               histHTML = '<div style="margin-top:8px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:8px 12px">'
                 + '<div style="font-size:10px;font-weight:800;color:#0f4c5c;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px">📋 Historial de contactos</div>'
-                + contactos.map(function(c){
+                + contactos.map(function(c, ci){
                     var cIcon = c.canal==='WhatsApp'?'💬':c.canal==='Llamada'?'📞':'📝';
                     var cColor = c.nota&&c.nota.startsWith('DESCARTADO')?'#ef4444':c.nota&&c.nota.startsWith('CAPTADO')?'#10b981':'#475569';
-                    return '<div style="font-size:11px;color:'+cColor+';padding:2px 0;display:flex;gap:6px;align-items:flex-start">'
+                    return '<div style="font-size:11px;color:'+cColor+';padding:2px 0;display:flex;gap:6px;align-items:center;justify-content:space-between">'
+                      + '<div style="display:flex;gap:6px;align-items:flex-start">'
                       + '<span style="white-space:nowrap;font-weight:600">' + cIcon + ' ' + escH(c.fecha) + '</span>'
                       + '<span>' + escH(c.nota||c.canal) + '</span>'
+                      + '</div>'
+                      + '<button onclick="eliminarContactoCaptacion(\''+escH(a.ref)+'\',\''+tipo+'\','+realIdx+','+ci+')" title="Eliminar este registro" style="border:none;background:none;cursor:pointer;color:#cbd5e1;font-size:12px;padding:0 2px;line-height:1" onmouseover="this.style.color=\'#ef4444\'" onmouseout="this.style.color=\'#cbd5e1\'">✕</button>'
                       + '</div>';
                   }).join('')
                 + '</div>';
@@ -3690,6 +3693,25 @@ function convertirACaptacion(idx) {
 }
 
 // ── CAPTACIÓN: REGISTRAR CONTACTO ──────────────────────────────────────────
+function eliminarContactoCaptacion(ref, tipo, realIdx, contactoIdx) {
+  var a = DB[tipo][realIdx];
+  if(!a || !a.contactosCaptacion) return;
+  if(!confirm('¿Eliminar este registro de contacto?')) return;
+  a.contactosCaptacion.splice(contactoIdx, 1);
+  // Recalcular estadoCaptacion según lo que queda
+  if(a.contactosCaptacion.length === 0) {
+    a.estadoCaptacion = 'Pendiente contacto';
+  } else {
+    var ultimo = a.contactosCaptacion[a.contactosCaptacion.length - 1];
+    if(ultimo.nota && ultimo.nota.startsWith('CAPTADO')) a.estadoCaptacion = 'Captado';
+    else if(ultimo.nota && ultimo.nota.startsWith('DESCARTADO')) a.estadoCaptacion = 'Descartado';
+    else a.estadoCaptacion = 'Contactado - sin respuesta';
+  }
+  DB[tipo][realIdx] = a;
+  saveDB();
+  openGlobalView('Captación');
+}
+
 function registrarContactoCaptacion(ref, tipo, realIdx) {
   var a = DB[tipo][realIdx];
   if(!a) return;
@@ -3716,9 +3738,14 @@ function abrirWhatsAppCaptacion(ref, tipo, realIdx) {
   var telLimpio = tel.replace(/[\s\-\+]/g,'');
   if(telLimpio && telLimpio.length < 9) { alert('El número de teléfono no parece válido.'); return; }
 
-  var tipoActivo = ref.startsWith('CAP-') ? (tipo==='naves'?'nave industrial':(tipo==='locales'?'local comercial':'oficina')) : tipo;
-  var zona = a.direccion ? a.direccion + (a.municipio ? ', ' + a.municipio : '') : (a.municipio||a.zona||'la zona');
-  var msg = 'Buenos días, me llamo Francisco, soy agente inmobiliario especializado en activos terciarios en Málaga. He localizado su ' + tipoActivo + ' en ' + zona + ' y me gustaría comentarle una posibilidad que podría ser de su interés. ¿Tendría unos minutos esta semana?';
+  var tipoActivo = tipo==='naves' ? 'nave' : tipo==='locales' ? 'local' : tipo==='oficinas' ? 'oficina' : 'inmueble';
+  var fuente = a.leadFuente || '';
+  var portalTxt = fuente ? ' en ' + fuente : '';
+  var msg = 'Hola, soy Francisco Díaz, de Inmobiliaria Díaz Novel.\n'
+    + 'Le escribo por su anuncio de ' + tipoActivo + portalTxt + '.\n'
+    + 'Estamos especializados en este tipo de activos y trabajamos analizando precio, competencia y tipo de actividad para reducir tiempos y evitar que el inmueble se quede parado.\n'
+    + 'Si le parece, puedo pasar a verlo y comentarle cómo lo enfocaría en su caso, sin compromiso.\n'
+    + 'Un saludo.';
 
   if(telLimpio) {
     var url = 'https://wa.me/34' + telLimpio.replace(/^(\+?34)/, '') + '?text=' + encodeURIComponent(msg);
