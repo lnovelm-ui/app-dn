@@ -405,15 +405,13 @@
     <button class="tab-btn tab-home" onclick="switchTab('__home__')" id="tab-__home__">🏠 Inicio</button>
     <div style="width:1px;background:#e2e8f0;margin:4px 2px;flex-shrink:0"></div>
     <button class="tab-btn" onclick="switchTab('naves')" id="tab-naves">🏭 Naves</button>
-    <button class="tab-btn" onclick="switchTab('oficinas')" id="tab-oficinas">🏢 Oficinas</button>
     <button class="tab-btn" onclick="switchTab('locales')" id="tab-locales">🏪 Locales</button>
+    <button class="tab-btn" onclick="switchTab('oficinas')" id="tab-oficinas">🏢 Oficinas</button>
     <button class="tab-btn" onclick="switchTab('pisos')" id="tab-pisos">🏠 Pisos</button>
     <button class="tab-btn" onclick="switchTab('chalets')" id="tab-chalets">🏡 Casas</button>
-    <button class="tab-btn" onclick="switchTab('propietarios')" id="tab-propietarios">👤 Propietarios</button>
     <button class="tab-btn" onclick="switchTab('clientes')" id="tab-clientes">💼 Clientes</button>
+    <button class="tab-btn" onclick="switchTab('propietarios')" id="tab-propietarios">👤 Propietarios</button>
     <button class="tab-btn" onclick="switchTab('resultados')" id="tab-resultados">📊 Resultados</button>
-    <div style="width:1px;background:#e2e8f0;margin:4px 2px;flex-shrink:0"></div>
-    <button class="tab-btn" onclick="switchTab('prospeccion')" id="tab-prospeccion" style="background:#fff7ed;border-color:#fed7aa;color:#c2410c;font-weight:700">🔍 Prospección</button>
   </div>
 
   <!-- ESTADO FILTER BAR - solo visible en pestañas de propiedades -->
@@ -731,11 +729,10 @@ function renderDashboard() {
   const all = ['naves','oficinas','locales','pisos','chalets'].flatMap(t=>DB[t]||[]);
   const stats = [
     {l:'Total propiedades', v:all.length, c:'#0f4c5c', click:'openGlobalView(null)'},
-    {l:'Captación', v:all.filter(a=>a.estadoComercial==='Captación').length, c:'#f59e0b', click:'openGlobalView(\'Captación\')'},
+    {l:'Prospecciones', v:(DB.leads||[]).length, c:'#c2410c', click:'switchTab(\'prospeccion\')'},
+    {l:'Captaciones', v:all.filter(a=>a.estadoComercial==='Captación').length, c:'#f59e0b', click:'openGlobalView(\'Captación\')'},
     {l:'Publicados', v:all.filter(a=>a.estadoComercial==='Publicado').length, c:'#10b981', click:'openGlobalView(\'Publicado\')'},
     {l:'Firmados', v:all.filter(a=>a.estadoComercial==='Firmado').length, c:'#0f4c5c', click:'openGlobalView(\'Firmado\')'},
-    {l:'Propietarios', v:DB.propietarios.length, c:'#7c3aed', click:''},
-    {l:'Clientes', v:DB.clientes.length, c:'#0284c7', click:''},
   ];
   document.getElementById('dashboard').innerHTML = stats.map(s=>`
     <div class="stat-card" style="border-top-color:${s.c};${s.click?'cursor:pointer;':''}transition:transform 0.15s,box-shadow 0.15s"
