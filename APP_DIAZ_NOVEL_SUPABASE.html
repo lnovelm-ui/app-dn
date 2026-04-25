@@ -2887,6 +2887,248 @@ function saveIvaLiquidado(trimestre, anyo, valor) {
 }
 
 // ── HOME ──────────────────────────────────────────────────────────────────────
+var _homeSearchQuery = '';
+
+function mountHomeSearch() {
+  var mount = document.getElementById('homeSearchMount');
+  if (!mount) return;
+  // Only create if not already there
+  if (document.getElementById('home-search-input')) { return; }
+  var wrap = document.createElement('div');
+  wrap.style.cssText = 'position:relative';
+  var icon = document.createElement('span');
+  icon.innerHTML = '&#128269;';
+  icon.style.cssText = 'position:absolute;left:14px;top:50%;transform:translateY(-50%);font-size:16px;pointer-events:none';
+  var inp = document.createElement('input');
+  inp.type = 'text';
+  inp.id = 'home-search-input';
+  inp.value = _homeSearchQuery;
+  inp.placeholder = 'Buscar en todo: activos, leads, clientes, propietarios...';
+  inp.style.cssText = 'width:100%;padding:12px 14px 12px 44px;border-radius:10px;border:2px solid #e2e8f0;font-size:14px;font-family:inherit;color:var(--text);background:#fff;outline:none;box-shadow:0 2px 8px rgba(0,0,0,0.06);transition:border-color 0.15s';
+  inp.addEventListener('focus', function(){ inp.style.borderColor='var(--teal)'; });
+  inp.addEventListener('blur', function(){ inp.style.borderColor = _homeSearchQuery ? 'var(--teal)' : '#e2e8f0'; });
+  inp.addEventListener('input', function(){ onHomeSearch(inp.value); });
+  inp.addEventListener('keydown', function(e){ if(e.key==='Escape'){ onHomeSearch(''); inp.value=''; } });
+  var clearBtn = document.createElement('button');
+  clearBtn.innerHTML = '&#x2715;';
+  clearBtn.id = 'home-search-clear';
+  clearBtn.style.cssText = 'position:absolute;right:12px;top:50%;transform:translateY(-50%);background:none;border:none;font-size:18px;cursor:pointer;color:#94a3b8;line-height:1;display:none';
+  clearBtn.addEventListener('click', function(){ onHomeSearch(''); inp.value=''; inp.focus(); });
+  wrap.appendChild(icon);
+  wrap.appendChild(inp);
+  wrap.appendChild(clearBtn);
+  mount.appendChild(wrap);
+}
+
+function renderHomeResults() {
+  var area = document.getElementById('homeResultsArea');
+  if (!area) return;
+  var clearBtn = document.getElementById('home-search-clear');
+  if (clearBtn) clearBtn.style.display = _homeSearchQuery ? 'block' : 'none';
+
+  var TIPOS = ['naves','oficinas','locales','pisos','chalets'];
+  var tipoLabel = {naves:'Nave',oficinas:'Oficina',locales:'Local',pisos:'Piso',chalets:'Casa'};
+  var tipoLabelPlural = {naves:'Naves',oficinas:'Oficinas',locales:'Locales',pisos:'Pisos',chalets:'Casas'};
+  var tipoEmoji = {naves:'&#127981;',oficinas:'&#127970;',locales:'&#127978;',pisos:'&#127968;',chalets:'&#127969;'};
+  var tipoColor = {naves:'#0f4c5c',oficinas:'#0284c7',locales:'#059669',pisos:'#7c3aed',chalets:'#b45309'};
+  var FASE_COLOR = {'Captacion':'#f59e0b','Publicado':'#10b981','Firmado':'#0f4c5c','Archivado':'#e2e8f0','Captación':'#f59e0b'};
+  var FASE_TEXT  = {'Captacion':'#fff','Publicado':'#fff','Firmado':'#fff','Archivado':'#94a3b8','Captación':'#fff'};
+
+  var q = (_homeSearchQuery || '').trim();
+
+  if (!q) {
+    // Show group tiles
+    var totalActivos = 0;
+    TIPOS.forEach(function(t){ totalActivos += (DB[t]||[]).length; });
+    var gruposHTML = '';
+    TIPOS.forEach(function(t) {
+      var list = DB[t] || [];
+      if (list.length === 0) return;
+      var captacion = list.filter(function(a){ return a.estadoComercial==='Captación'; }).length;
+      var publicado  = list.filter(function(a){ return a.estadoComercial==='Publicado'; }).length;
+      var firmado    = list.filter(function(a){ return a.estadoComercial==='Firmado'; }).length;
+      var archivado  = list.filter(function(a){ return a.estadoComercial==='Archivado'; }).length;
+      var bHTML = '';
+      if (captacion>0) bHTML += '<span style="background:#f59e0b;color:#fff;font-size:11px;font-weight:700;padding:2px 9px;border-radius:20px">'+captacion+' Captación</span> ';
+      if (publicado>0) bHTML += '<span style="background:#10b981;color:#fff;font-size:11px;font-weight:700;padding:2px 9px;border-radius:20px">'+publicado+' Publicado</span> ';
+      if (firmado>0)   bHTML += '<span style="background:#0f4c5c;color:#fff;font-size:11px;font-weight:700;padding:2px 9px;border-radius:20px">'+firmado+' Firmado</span> ';
+      if (archivado>0) bHTML += '<span style="background:#e2e8f0;color:#94a3b8;font-size:11px;font-weight:700;padding:2px 9px;border-radius:20px">'+archivado+' Archivado</span> ';
+      gruposHTML += '<div style="border:1px solid #e2e8f0;border-left:4px solid '+tipoColor[t]+';border-radius:10px;padding:16px 20px;background:#fff;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;cursor:pointer;transition:box-shadow 0.15s" data-tipo="'+t+'" onclick="switchTab(this.dataset.tipo)" onmouseover="this.style.boxShadow='0 4px 16px rgba(0,0,0,0.08)'" onmouseout="this.style.boxShadow=''">'
+        +'<div style="display:flex;align-items:center;gap:12px">'
+        +'<span style="font-size:22px">'+tipoEmoji[t]+'</span>'
+        +'<div><div style="font-size:15px;font-weight:800;color:#0f4c5c">'+tipoLabelPlural[t]+'</div>'
+        +'<div style="font-size:12px;color:#64748b;margin-top:3px">'+list.length+' propiedad'+(list.length!==1?'es':'')+'</div>'
+        +'</div></div>'
+        +'<div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center">'+bHTML
+        +'<span style="font-size:20px;color:#cbd5e1;margin-left:4px">&#8250;</span>'
+        +'</div></div>';
+    });
+    if (!gruposHTML) gruposHTML = '<div class="empty-state" style="padding:48px 0">No hay propiedades registradas todavía.</div>';
+    area.innerHTML = '<div style="font-size:11px;color:#94a3b8;margin-bottom:12px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px">'
+      +totalActivos+' propiedad'+(totalActivos!==1?'es':'')+' en cartera'
+      +'</div><div style="display:flex;flex-direction:column;gap:10px">'+gruposHTML+'</div>';
+    return;
+  }
+
+  // --- GLOBAL SEARCH ---
+  var ql = q.toLowerCase();
+  var grupos = [];
+
+  // 1. Activos (naves, oficinas, locales, pisos, chalets)
+  var activosRes = [];
+  TIPOS.forEach(function(t) {
+    (DB[t]||[]).forEach(function(a, i) {
+      var prop = (DB.propietarios||[]).find(function(p){ return p.id===a.propietarioId; });
+      var propNombre = prop ? (prop.nombre||'').toLowerCase() : '';
+      var propTel = prop ? [prop.tel1,prop.tel2,prop.tel3].filter(Boolean).join(' ').toLowerCase() : '';
+      var match = (a.ref||'').toLowerCase().includes(ql)
+        || (a.refAnterior||'').toLowerCase().includes(ql)
+        || (a.direccion||'').toLowerCase().includes(ql)
+        || (a.municipio||'').toLowerCase().includes(ql)
+        || (a.zona||'').toLowerCase().includes(ql)
+        || (a.observaciones||'').toLowerCase().includes(ql)
+        || (a.estadoComercial||'').toLowerCase().includes(ql)
+        || propNombre.includes(ql) || propTel.includes(ql);
+      if (match) activosRes.push({a:a,t:t,i:i});
+    });
+  });
+  if (activosRes.length > 0) {
+    var cards = activosRes.slice(0,8).map(function(r) {
+      var a = r.a;
+      var bc = FASE_COLOR[a.estadoComercial]||'#94a3b8';
+      var bt = FASE_TEXT[a.estadoComercial]||'#fff';
+      var sup = a.superficieTotal||a.superficie||a.superficieConstruida||'';
+      var prop = (DB.propietarios||[]).find(function(p){ return p.id===a.propietarioId; });
+      var metaHTML = '';
+      if (sup) metaHTML += '<span>&#128208; '+escH(sup)+' m²</span>';
+      if (a.precioVenta) metaHTML += '<span>&#128182; '+eur(a.precioVenta)+'</span>';
+      if (a.precioAlquiler) metaHTML += '<span>&#128273; '+eur(a.precioAlquiler)+'/mes</span>';
+      if (prop) metaHTML += '<span>&#128100; '+escH(prop.nombre)+'</span>';
+      return '<div style="border:1px solid #e2e8f0;border-left:4px solid '+tipoColor[r.t]+';border-radius:10px;padding:14px 18px;background:#fff;margin-bottom:6px;display:flex;justify-content:space-between;align-items:flex-start;gap:10px;cursor:pointer" onclick="openAssetDetail(''+escH(a.ref)+'')">'
+        +'<div style="flex:1"><div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:5px">'
+        +'<span style="font-weight:800;color:#0f4c5c;font-size:14px">'+escH(a.ref)+'</span>'
+        +'<span style="background:'+tipoColor[r.t]+';color:#fff;font-size:10px;font-weight:700;padding:1px 7px;border-radius:4px">'+tipoLabel[r.t]+'</span>'
+        +'<span style="background:'+bc+';color:'+bt+';font-size:10px;font-weight:700;padding:2px 8px;border-radius:20px">'+escH(a.estadoComercial||'Captación')+'</span>'
+        +'</div>'
+        +'<div style="font-size:13px;font-weight:600;color:#1e293b;margin-bottom:4px">'+escH(a.direccion||'')+(a.municipio?' · '+escH(a.municipio):'')+'</div>'
+        +'<div style="font-size:12px;color:#64748b;display:flex;gap:12px;flex-wrap:wrap">'+metaHTML+'</div>'
+        +'</div></div>';
+    }).join('');
+    if (activosRes.length > 8) cards += '<div style="font-size:12px;color:#94a3b8;padding:6px 4px">... y '+(activosRes.length-8)+' más. Refina la búsqueda.</div>';
+    grupos.push({label:'Activos en cartera', icon:'&#127970;', color:'#0f4c5c', count:activosRes.length, html:cards});
+  }
+
+  // 2. Leads (prospección)
+  var leadsRes = [];
+  (DB.leads||[]).forEach(function(l, i) {
+    var match = (l.ref||'').toLowerCase().includes(ql)
+      || (l.nombre||'').toLowerCase().includes(ql)
+      || (l.telefono||'').toLowerCase().includes(ql)
+      || (l.email||'').toLowerCase().includes(ql)
+      || (l.zona||'').toLowerCase().includes(ql)
+      || (l.direccion||'').toLowerCase().includes(ql)
+      || (l.estado||'').toLowerCase().includes(ql)
+      || (l.tipoActivo||'').toLowerCase().includes(ql)
+      || (l.operacion||'').toLowerCase().includes(ql)
+      || (l.obs||'').toLowerCase().includes(ql)
+      || (l.fuente||'').toLowerCase().includes(ql);
+    if (match) leadsRes.push({l:l,i:i});
+  });
+  if (leadsRes.length > 0) {
+    var EST_COLOR = {'Nuevo':'#f59e0b','En seguimiento':'#3b82f6','Contactado':'#8b5cf6','Convertido a captación':'#10b981','Descartado':'#94a3b8'};
+    var lcards = leadsRes.slice(0,6).map(function(r) {
+      var l = r.l;
+      var bc = EST_COLOR[l.estado]||'#94a3b8';
+      return '<div style="border:1px solid #e2e8f0;border-left:4px solid #c2410c;border-radius:10px;padding:12px 16px;background:#fff;margin-bottom:6px;cursor:pointer" onclick="leadSearchText='';switchTab('prospeccion');setTimeout(function(){editarLead('+r.i+');},200)">'
+        +'<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:4px">'
+        +'<span style="font-weight:800;color:#c2410c;font-size:13px">'+escH(l.ref||'—')+'</span>'
+        +'<span style="background:'+bc+';color:#fff;font-size:10px;font-weight:700;padding:1px 7px;border-radius:20px">'+escH(l.estado||'Nuevo')+'</span>'
+        +(l.tipoActivo?'<span style="background:#f1f5f9;color:#475569;font-size:10px;font-weight:600;padding:1px 7px;border-radius:6px">'+escH(l.tipoActivo)+'</span>':'')
+        +(l.operacion?'<span style="background:#f1f5f9;color:#475569;font-size:10px;font-weight:600;padding:1px 7px;border-radius:6px">'+escH(l.operacion)+'</span>':'')
+        +'</div>'
+        +'<div style="font-size:13px;font-weight:600;color:#1e293b;margin-bottom:3px">'+escH(l.zona||l.direccion||'Sin ubicación')+(l.precio?' · '+escH(l.precio)+' €':'')+'</div>'
+        +'<div style="font-size:12px;color:#64748b;display:flex;gap:10px;flex-wrap:wrap">'
+        +(l.nombre?'<span>&#128100; '+escH(l.nombre)+'</span>':'')
+        +(l.telefono?'<span>&#128222; '+escH(l.telefono)+'</span>':'')
+        +(l.fuente?'<span>&#128279; '+escH(l.fuente)+'</span>':'')
+        +'</div></div>';
+    }).join('');
+    if (leadsRes.length > 6) lcards += '<div style="font-size:12px;color:#94a3b8;padding:6px 4px">... y '+(leadsRes.length-6)+' más.</div>';
+    grupos.push({label:'Prospección', icon:'&#128269;', color:'#c2410c', count:leadsRes.length, html:lcards});
+  }
+
+  // 3. Propietarios
+  var propRes = [];
+  (DB.propietarios||[]).forEach(function(p, i) {
+    var match = (p.nombre||'').toLowerCase().includes(ql)
+      || (p.tel1||'').toLowerCase().includes(ql)
+      || (p.tel2||'').toLowerCase().includes(ql)
+      || (p.tel3||'').toLowerCase().includes(ql)
+      || (p.email||'').toLowerCase().includes(ql)
+      || (p.municipio||'').toLowerCase().includes(ql)
+      || (p.notas||'').toLowerCase().includes(ql);
+    if (match) propRes.push({p:p,i:i});
+  });
+  if (propRes.length > 0) {
+    var pcards = propRes.slice(0,5).map(function(r) {
+      var p = r.p;
+      return '<div style="border:1px solid #e2e8f0;border-left:4px solid #7c3aed;border-radius:10px;padding:12px 16px;background:#fff;margin-bottom:6px;cursor:pointer" onclick="switchTab('propietarios')">'
+        +'<div style="font-weight:700;color:#1e293b;font-size:13px;margin-bottom:3px">&#128100; '+escH(p.nombre||'—')+'</div>'
+        +'<div style="font-size:12px;color:#64748b;display:flex;gap:10px;flex-wrap:wrap">'
+        +(p.tel1?'<span>&#128222; '+escH(p.tel1)+'</span>':'')
+        +(p.email?'<span>&#128140; '+escH(p.email)+'</span>':'')
+        +(p.municipio?'<span>&#128205; '+escH(p.municipio)+'</span>':'')
+        +'</div></div>';
+    }).join('');
+    if (propRes.length > 5) pcards += '<div style="font-size:12px;color:#94a3b8;padding:6px 4px">... y '+(propRes.length-5)+' más.</div>';
+    grupos.push({label:'Propietarios', icon:'&#128100;', color:'#7c3aed', count:propRes.length, html:pcards});
+  }
+
+  // 4. Clientes
+  var cliRes = [];
+  (DB.clientes||[]).forEach(function(c, i) {
+    var match = (c.nombre||'').toLowerCase().includes(ql)
+      || (c.tel||'').toLowerCase().includes(ql)
+      || (c.email||'').toLowerCase().includes(ql)
+      || (c.municipio||'').toLowerCase().includes(ql)
+      || (c.notas||'').toLowerCase().includes(ql)
+      || (c.tipoInmueble||'').toLowerCase().includes(ql);
+    if (match) cliRes.push({c:c,i:i});
+  });
+  if (cliRes.length > 0) {
+    var ccards = cliRes.slice(0,5).map(function(r) {
+      var c = r.c;
+      return '<div style="border:1px solid #e2e8f0;border-left:4px solid #0284c7;border-radius:10px;padding:12px 16px;background:#fff;margin-bottom:6px;cursor:pointer" onclick="switchTab('clientes')">'
+        +'<div style="font-weight:700;color:#1e293b;font-size:13px;margin-bottom:3px">&#128188; '+escH(c.nombre||'—')+'</div>'
+        +'<div style="font-size:12px;color:#64748b;display:flex;gap:10px;flex-wrap:wrap">'
+        +(c.tel?'<span>&#128222; '+escH(c.tel)+'</span>':'')
+        +(c.email?'<span>&#128140; '+escH(c.email)+'</span>':'')
+        +(c.tipoInmueble?'<span>&#127968; '+escH(c.tipoInmueble)+'</span>':'')
+        +'</div></div>';
+    }).join('');
+    if (cliRes.length > 5) ccards += '<div style="font-size:12px;color:#94a3b8;padding:6px 4px">... y '+(cliRes.length-5)+' más.</div>';
+    grupos.push({label:'Clientes', icon:'&#128188;', color:'#0284c7', count:cliRes.length, html:ccards});
+  }
+
+  var total = activosRes.length + leadsRes.length + propRes.length + cliRes.length;
+
+  if (total === 0) {
+    area.innerHTML = '<div class="empty-state">Sin resultados para <strong>'+escH(q)+'</strong><br><span style="font-size:13px;color:#94a3b8">Prueba con otro término, teléfono o referencia</span></div>';
+    return;
+  }
+
+  var html = '<div style="font-size:11px;color:#94a3b8;margin-bottom:16px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px">'+total+' resultado'+(total!==1?'s':'')+' en toda la app</div>';
+  grupos.forEach(function(g) {
+    html += '<div style="margin-bottom:20px">'
+      +'<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">'
+      +'<span style="background:'+g.color+';color:#fff;font-size:11px;font-weight:700;padding:3px 10px;border-radius:20px">'+g.icon+' '+g.label+' ('+g.count+')</span>'
+      +'</div>'
+      +g.html
+      +'</div>';
+  });
+  area.innerHTML = html;
+}
+
 function renderHome(busqueda) {
   document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
   var homeBtn = document.getElementById('tab-__home__');
@@ -2906,21 +3148,13 @@ function renderHome(busqueda) {
   var totalActivos = 0;
   TIPOS.forEach(function(t) { totalActivos += (DB[t]||[]).length; });
 
-  // Buscador
-  var borderColor = q ? 'var(--teal)' : '#e2e8f0';
-  var clearBtn = q ? '<button onclick="onHomeSearch(\'\')" style="position:absolute;right:12px;top:50%;transform:translateY(-50%);background:none;border:none;font-size:18px;cursor:pointer;color:#94a3b8;line-height:1">&#x2715;</button>' : '';
-  var searchHTML = '<div style="margin-bottom:24px;position:relative">'
-    + '<span style="position:absolute;left:14px;top:50%;transform:translateY(-50%);font-size:16px;pointer-events:none">&#128269;</span>'
-    + '<input id="home-search-input" type="text" value="' + escH(q) + '"'
-    + ' placeholder="Buscar por referencia, direcci\u00f3n, municipio, propietario..."'
-    + ' oninput="onHomeSearch(this.value)"'
-    + ' style="width:100%;padding:12px 14px 12px 44px;border-radius:10px;border:2px solid ' + borderColor + ';font-size:14px;font-family:inherit;color:var(--text);background:#fff;outline:none;box-shadow:0 2px 8px rgba(0,0,0,0.06);transition:border-color 0.15s">'
-    + clearBtn
-    + '</div>';
+  // Buscador (mount point estable - el input se monta via JS para no perder foco)
+  var searchHTML = '<div id="homeSearchMount" style="margin-bottom:24px"></div>'
+    + '<div id="homeResultsArea"></div>';
 
   var bodyHTML = '';
-
-  if (q) {
+  // bodyHTML will be filled by renderHomeResults after mount
+  if (false) { // disabled - handled by renderHomeResults
     var ql = q.toLowerCase();
     var resultados = [];
     TIPOS.forEach(function(t) {
@@ -3011,17 +3245,15 @@ function renderHome(busqueda) {
 
   document.getElementById('content').innerHTML =
     '<div style="font-size:22px;font-weight:800;color:#0f4c5c;margin-bottom:20px">Inicio</div>'
-    + searchHTML
-    + bodyHTML;
+    + searchHTML;
 
-  if (q) {
-    var inp = document.getElementById('home-search-input');
-    if (inp) { inp.focus(); inp.setSelectionRange(inp.value.length, inp.value.length); }
-  }
+  mountHomeSearch();
+  renderHomeResults();
 }
 
 function onHomeSearch(val) {
-  renderHome(val);
+  _homeSearchQuery = val || '';
+  renderHomeResults();
 }
 
 
