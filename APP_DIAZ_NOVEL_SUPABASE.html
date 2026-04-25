@@ -3254,6 +3254,7 @@ let leadFiltFuente = '';
 let leadFiltTipo = '';
 let leadFiltPerfil = '';
 let leadFiltOperacion = '';
+let leadSearchText = '';
 
 function genLeadRef() {
   const leads = DB.leads || [];
@@ -3274,6 +3275,11 @@ function renderProspeccion() {
     if(leadFiltPerfil === 'Particular' && !(l.perfil==='Particular' || l.perfil==='Propietario directo')) return false;
     if(leadFiltPerfil === 'Profesional' && (l.perfil==='Particular' || l.perfil==='Propietario directo' || !l.perfil)) return false;
     if(leadFiltOperacion && l.operacion !== leadFiltOperacion) return false;
+    if(leadSearchText) {
+      const q = leadSearchText.toLowerCase();
+      const haystack = [l.nombre||'', l.telefono||'', l.email||'', l.ref||'', l.zona||'', l.direccion||''].join(' ').toLowerCase();
+      if(!haystack.includes(q)) return false;
+    }
     return true;
   });
 
@@ -3287,12 +3293,16 @@ function renderProspeccion() {
     const d = leadEditIdx !== null ? (DB.leads[leadEditIdx] || {}) : {};
     area.innerHTML = `
     <div style="max-width:860px;margin:0 auto;padding:20px 16px">
-      <div style="display:flex;align-items:center;gap:12px;margin-bottom:20px">
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px">
         <span onclick="cerrarLeadForm()" style="cursor:pointer;color:var(--teal);font-weight:700;display:flex;align-items:center;gap:4px;padding:4px 10px;background:#f0f9fc;border:1px solid #bde0ed;border-radius:20px;font-size:13px">🏠 Inicio</span>
         <span style="color:#94a3b8">›</span>
         <span onclick="doSwitchTab('prospeccion')" style="cursor:pointer;color:var(--teal);font-weight:700;padding:4px 10px;background:#fff7ed;border:1px solid #fed7aa;border-radius:20px;font-size:13px">🔍 Prospección</span>
         <span style="color:#94a3b8">›</span>
         <span style="color:#c2410c;font-weight:700;font-size:13px">${leadEditIdx!==null ? 'Editar lead' : 'Nuevo lead'}</span>
+      </div>
+      <div style="position:relative;margin-bottom:18px">
+        <span style="position:absolute;left:12px;top:50%;transform:translateY(-50%);color:#94a3b8;font-size:15px">🔍</span>
+        <input type="text" value="${escH(leadSearchText)}" placeholder="Buscar por nombre, teléfono, email, zona..." oninput="leadSearchText=this.value;cerrarLeadForm();renderProspeccion()" style="width:100%;padding:10px 14px 10px 36px;border-radius:10px;border:1.5px solid #fed7aa;font-size:14px;font-family:inherit;background:#fffbf7;box-sizing:border-box;outline:none" onfocus="this.style.borderColor='#c2410c'" onblur="this.style.borderColor='#fed7aa'">
       </div>
       <div style="background:#fff;border-radius:14px;border:1px solid var(--border);padding:28px 24px;box-shadow:var(--shadow)">
         <div style="font-size:13px;font-weight:800;color:var(--teal);margin-bottom:20px;letter-spacing:0.2px">${leadEditIdx!==null ? '✏️ Editar lead · '+escH(d.ref||'') : '➕ Nuevo lead de prospección'}</div>
@@ -3429,6 +3439,15 @@ function renderProspeccion() {
       <div style="background:#fff;border-radius:12px;border:1px solid var(--border);padding:16px 18px;box-shadow:var(--shadow)">
         <div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px">Convertidos</div>
         <div style="font-size:28px;font-weight:800;color:#10b981">${convertidos}</div>
+      </div>
+    </div>
+
+    <!-- Buscador -->
+    <div style="margin-bottom:12px">
+      <div style="position:relative">
+        <span style="position:absolute;left:12px;top:50%;transform:translateY(-50%);color:#94a3b8;font-size:15px">🔍</span>
+        <input type="text" id="leadSearchInput" value="${escH(leadSearchText)}" placeholder="Buscar por nombre, teléfono, email, zona..." oninput="leadSearchText=this.value;renderProspeccion()" style="width:100%;padding:10px 14px 10px 36px;border-radius:10px;border:1.5px solid #fed7aa;font-size:14px;font-family:inherit;background:#fffbf7;box-sizing:border-box;outline:none" onfocus="this.style.borderColor='#c2410c'" onblur="this.style.borderColor='#fed7aa'">
+        ${leadSearchText ? `<span onclick="leadSearchText='';renderProspeccion()" style="position:absolute;right:12px;top:50%;transform:translateY(-50%);cursor:pointer;color:#94a3b8;font-size:18px;line-height:1" title="Limpiar búsqueda">×</span>` : ''}
       </div>
     </div>
 
