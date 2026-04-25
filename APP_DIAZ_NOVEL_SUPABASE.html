@@ -560,6 +560,8 @@ let activeStates = new Set(['Captación','Publicado']);
 let formDirty = false;
 let pendingTab = null;
 let sortDesc = true; // true = ref descendente (más nueva primero), false = ascendente
+let _lastEditedRef = null; // ref del último activo editado para scroll
+let _leadScrollPos = 0;   // posición scroll en prospección
 
 function markDirty() { formDirty = true; }
 
@@ -2054,6 +2056,7 @@ function onFiltEst(v, tipo) { if(tipo) onAssetFilter(tipo); else render(); }
 function onFiltTipo(v, tipo) { filtTipo=v; if(tipo) onAssetFilter(tipo); else render(); }
 
 function openEdit(idx, tipo) {
+  _lastEditedRef = (DB[tipo]||[])[idx]?.ref || null;
   editIdx=idx; formOpen=true;
   // Si estamos en vista global, cambiar a la pestaña del tipo correcto
   if(currentTab==='__global__' || currentTab!==tipo) {
@@ -2153,15 +2156,45 @@ function submitAsset(tipo) {
     rec.ref = rec.estadoComercial === 'Captación' ? genRefCap() : genRef(tipo);
     DB[tipo].push(rec);
   }
-  saveDB(); formOpen=false; editIdx=null; formDirty=false; render();
+  const _refToScroll = _lastEditedRef;
+  saveDB(); formOpen=false; editIdx=null; formDirty=false; _lastEditedRef=null; render();
+  if(_refToScroll) {
+    setTimeout(function(){
+      var cards = document.querySelectorAll('.asset-card');
+      for(var i=0; i<cards.length; i++){
+        var refEl = cards[i].querySelector('.card-ref');
+        if(refEl && refEl.textContent.trim() === _refToScroll){
+          cards[i].scrollIntoView({behavior:'smooth', block:'center'});
+          cards[i].style.boxShadow = '0 0 0 3px #0f4c5c44';
+          setTimeout(function(card){ card.style.boxShadow=''; }, 1800, cards[i]);
+          break;
+        }
+      }
+    }, 120);
+  }
 }
 
 function submitPropietario() {
   const n=fv('p_nombre'),t=fv('p_tel1'); if(!n||!t) return alert('Nombre y teléfono son obligatorios');
   const rec={nombre:n,empresa:fv('p_empresa'),tel1:t,tel2:fv('p_tel2'),tel3:fv('p_tel3'),email:fv('p_email'),origen:fv('p_origen'),observaciones:fv('p_observaciones')};
+  const _editedPropId = editId;
   if(editId){ DB.propietarios=DB.propietarios.map(p=>p.id===editId?{...p,...rec}:p); }
   else { rec.id='prop_'+Date.now(); DB.propietarios.push(rec); }
   saveDB(); formOpen=false; editId=null; formDirty=false; render();
+  if(_editedPropId) {
+    setTimeout(function(){
+      var cards = document.querySelectorAll('.asset-card');
+      for(var i=0; i<cards.length; i++){
+        var nameEl = cards[i].querySelector('[style*="font-size:15px"]');
+        if(nameEl && DB.propietarios.find(function(p){ return p.id===_editedPropId && p.nombre===nameEl.textContent.trim(); })){
+          cards[i].scrollIntoView({behavior:'smooth', block:'center'});
+          cards[i].style.boxShadow = '0 0 0 3px #7c3aed44';
+          setTimeout(function(card){ card.style.boxShadow=''; }, 1800, cards[i]);
+          break;
+        }
+      }
+    }, 120);
+  }
 }
 
 function submitCliente() {
@@ -2181,9 +2214,24 @@ function submitCliente() {
     inmuebleInteres:fv('c_inmuebleInteres'),
     interesesBusqueda:fv('c_interesesBusqueda')
   };
+  const _editedCliId = editId;
   if(editId){ DB.clientes=DB.clientes.map(c=>c.id===editId?{...c,...rec}:c); }
   else { rec.id='cli_'+Date.now(); DB.clientes.push(rec); }
   saveDB(); formOpen=false; editId=null; formDirty=false; render();
+  if(_editedCliId) {
+    setTimeout(function(){
+      var cards = document.querySelectorAll('.asset-card');
+      for(var i=0; i<cards.length; i++){
+        var nameEl = cards[i].querySelector('[style*="cursor:pointer"][style*="text-decoration"]');
+        if(nameEl && DB.clientes.find(function(c){ return c.id===_editedCliId && c.nombre===nameEl.textContent.trim(); })){
+          cards[i].scrollIntoView({behavior:'smooth', block:'center'});
+          cards[i].style.boxShadow = '0 0 0 3px #0284c744';
+          setTimeout(function(card){ card.style.boxShadow=''; }, 1800, cards[i]);
+          break;
+        }
+      }
+    }, 120);
+  }
 }
 
 // ── IMPORT / EXPORT ───────────────────────────────────────────────────────────
@@ -3754,15 +3802,19 @@ function abrirNuevoLead() {
 }
 
 function editarLead(idx) {
+  _leadScrollPos = window.scrollY || document.documentElement.scrollTop;
   leadFormOpen = true;
   leadEditIdx = idx;
   renderProspeccion();
+  window.scrollTo(0, 0);
 }
 
 function cerrarLeadForm() {
   leadFormOpen = false;
   leadEditIdx = null;
   renderProspeccion();
+  var pos = _leadScrollPos;
+  setTimeout(function(){ window.scrollTo({top: pos, behavior: 'smooth'}); }, 80);
 }
 
 function guardarLead() {
@@ -3798,6 +3850,8 @@ function guardarLead() {
   leadFormOpen = false;
   leadEditIdx = null;
   renderProspeccion();
+  var pos = _leadScrollPos;
+  setTimeout(function(){ window.scrollTo({top: pos, behavior: 'smooth'}); }, 80);
 }
 
 function eliminarLead(idx) {
