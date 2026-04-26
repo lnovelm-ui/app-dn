@@ -803,7 +803,14 @@ function openGlobalView(estado) {
         ${subTitle}
       </div>
       <div style="display:flex;gap:8px;flex-wrap:wrap">
-        ${estado === 'Captación' ? '<button onclick="exportXLSXCaptaciones()" style="padding:8px 14px;border-radius:8px;border:1.5px solid #bbf7d0;background:#f0fdf4;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;color:#166534">📥 Excel Captaciones</button>' : '<button onclick="exportXLSXTodosActivos()" style="padding:8px 14px;border-radius:8px;border:1.5px solid #bbf7d0;background:#f0fdf4;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;color:#166534">📥 Excel Activos</button>'}
+        ${estado === 'Captación'
+          ? '<button onclick="exportXLSXPorEstado(\'Captación\')" style="padding:8px 14px;border-radius:8px;border:1.5px solid #bbf7d0;background:#f0fdf4;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;color:#166534">📥 Excel Captaciones</button>'
+          : estado === 'Publicado'
+            ? '<button onclick="exportXLSXPorEstado(\'Publicado\')" style="padding:8px 14px;border-radius:8px;border:1.5px solid #bbf7d0;background:#f0fdf4;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;color:#166534">📥 Excel Publicados</button>'
+            : estado === 'Firmado'
+              ? '<button onclick="exportXLSXPorEstado(\'Firmado\')" style="padding:8px 14px;border-radius:8px;border:1.5px solid #bbf7d0;background:#f0fdf4;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;color:#166534">📥 Excel Firmados</button>'
+              : '<button onclick="exportXLSXTodosActivos()" style="padding:8px 14px;border-radius:8px;border:1.5px solid #bbf7d0;background:#f0fdf4;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;color:#166534">📥 Excel Todos</button>'
+        }
         <button onclick="switchTab('locales')" style="padding:8px 14px;border-radius:8px;border:none;background:#059669;color:#fff;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit">+ Nuevo Local</button>
         <button onclick="switchTab('naves')" style="padding:8px 14px;border-radius:8px;border:none;background:#0f4c5c;color:#fff;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit">+ Nueva Nave</button>
         <button onclick="switchTab('oficinas')" style="padding:8px 14px;border-radius:8px;border:none;background:#0284c7;color:#fff;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit">+ Nueva Oficina</button>
@@ -4143,6 +4150,58 @@ function exportXLSX(rows, filename, headerMap) {
   XLSX.writeFile(wb, filename);
 }
 
+// ── ACTIVOS POR ESTADO (Captación / Publicado / Firmado) ──────────────────────
+function exportXLSXPorEstado(estado) {
+  var TIPOS = ['naves','oficinas','locales','pisos','chalets'];
+  var tipoLabel = {naves:'Nave',oficinas:'Oficina',locales:'Local',pisos:'Piso',chalets:'Casa'};
+  var headers = [
+    {key:'tipoActivo',   label:'Tipo'},
+    {key:'ref',          label:'Referencia'},
+    {key:'refAnterior',  label:'Ref. anterior'},
+    {key:'estadoComercial', label:'Estado comercial'},
+    {key:'estadoContacto',  label:'Contacto propietario'},
+    {key:'tipoOperacion',label:'Tipo operación'},
+    {key:'precioVenta',  label:'Precio venta (€)'},
+    {key:'precioAlquiler',label:'Precio alquiler (€/mes)'},
+    {key:'provincia',    label:'Provincia'},
+    {key:'municipio',    label:'Municipio'},
+    {key:'zona',         label:'Zona'},
+    {key:'direccion',    label:'Dirección'},
+    {key:'refCatastral', label:'Ref. catastral'},
+    {key:'superficie',   label:'Superficie (m²)'},
+    {key:'superficieTotal',label:'Sup. total nave (m²)'},
+    {key:'exclusiva',    label:'Exclusiva'},
+    {key:'documentacion',label:'Documentación'},
+    {key:'fechaCaptacion',label:'Fecha captación'},
+    {key:'fechaCierre',  label:'Fecha cierre'},
+    {key:'enlaceWeb',    label:'Enlace web'},
+    {key:'leadFuente',   label:'Fuente lead'},
+    {key:'leadPerfil',   label:'Perfil lead'},
+    {key:'observaciones',label:'Observaciones'},
+    {key:'propietarioNombre', label:'Propietario'},
+    {key:'propietarioTel',    label:'Tel. propietario'},
+    {key:'propietarioEmail',  label:'Email propietario'},
+  ];
+  var rows = [];
+  TIPOS.forEach(function(t){
+    (DB[t]||[]).filter(function(a){ return a.estadoComercial === estado; }).forEach(function(a){
+      var prop = (DB.propietarios||[]).find(function(p){ return p.id === a.propietarioId; });
+      var r = Object.assign({}, a);
+      r.tipoActivo = tipoLabel[t];
+      r.propietarioNombre = prop ? (prop.nombre||'') : (a.leadNombre||'');
+      r.propietarioTel    = prop ? (prop.tel1||'') : (a.leadTelefono||'');
+      r.propietarioEmail  = prop ? (prop.email||'') : '';
+      rows.push(r);
+    });
+  });
+  if (!rows.length) { alert('No hay activos en estado "' + estado + '" para exportar.'); return; }
+  var fname = estado.toLowerCase().replace(/\s/g,'_') + '_' + new Date().toISOString().slice(0,10) + '.xlsx';
+  exportXLSX(rows, fname, headers);
+}
+
+// mantener alias por si hubiera referencias externas
+function exportXLSXCaptaciones() { exportXLSXPorEstado('Captación'); }
+
 // ── ACTIVOS (todas las secciones de activos) ──────────────────────────────────
 function exportXLSXActivos(tipo) {
   var list = DB[tipo] || [];
@@ -4226,45 +4285,6 @@ function exportXLSXTodosActivos() {
   });
   if (!rows.length) { alert('No hay activos para exportar.'); return; }
   exportXLSX(rows, 'todos_activos_' + new Date().toISOString().slice(0,10) + '.xlsx', headers);
-}
-
-// ── CAPTACIONES ────────────────────────────────────────────────────────────────
-function exportXLSXCaptaciones() {
-  var TIPOS = ['naves','oficinas','locales','pisos','chalets'];
-  var tipoLabel = {naves:'Nave',oficinas:'Oficina',locales:'Local',pisos:'Piso',chalets:'Casa'};
-  var headers = [
-    {key:'tipoActivo',   label:'Tipo'},
-    {key:'ref',          label:'Referencia'},
-    {key:'estadoCaptacion', label:'Estado captación'},
-    {key:'tipoOperacion',label:'Tipo operación'},
-    {key:'precioVenta',  label:'Precio venta (€)'},
-    {key:'precioAlquiler',label:'Precio alquiler (€/mes)'},
-    {key:'provincia',    label:'Provincia'},
-    {key:'municipio',    label:'Municipio'},
-    {key:'zona',         label:'Zona'},
-    {key:'direccion',    label:'Dirección'},
-    {key:'superficie',   label:'Superficie (m²)'},
-    {key:'exclusiva',    label:'Exclusiva'},
-    {key:'fechaCaptacion',label:'Fecha captación'},
-    {key:'leadFuente',   label:'Fuente'},
-    {key:'leadPerfil',   label:'Perfil lead'},
-    {key:'observaciones',label:'Observaciones'},
-    {key:'propietarioNombre', label:'Propietario'},
-    {key:'propietarioTel',    label:'Tel. propietario'},
-  ];
-  var rows = [];
-  TIPOS.forEach(function(t){
-    (DB[t]||[]).filter(function(a){ return a.estadoComercial === 'Captación'; }).forEach(function(a){
-      var prop = (DB.propietarios||[]).find(function(p){ return p.id === a.propietarioId; });
-      var r = Object.assign({}, a);
-      r.tipoActivo = tipoLabel[t];
-      r.propietarioNombre = prop ? (prop.nombre||'') : (a.leadNombre||'');
-      r.propietarioTel    = prop ? (prop.tel1||'') : (a.leadTelefono||'');
-      rows.push(r);
-    });
-  });
-  if (!rows.length) { alert('No hay captaciones para exportar.'); return; }
-  exportXLSX(rows, 'captaciones_' + new Date().toISOString().slice(0,10) + '.xlsx', headers);
 }
 
 // ── PROPIETARIOS ──────────────────────────────────────────────────────────────
