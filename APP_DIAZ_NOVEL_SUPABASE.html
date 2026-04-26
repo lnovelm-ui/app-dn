@@ -71,7 +71,7 @@
   #main { max-width: 1300px; margin: 0 auto; padding: 24px 20px; }
 
   /* DASHBOARD */
-  #dashboard { display: flex; gap: 12px; margin-bottom: 24px; flex-wrap: wrap; }
+  #dashboard { display: flex; gap: 10px; margin-bottom: 14px; flex-wrap: wrap; }
   .stat-card {
     flex: 1 1 120px; background: var(--white); border: 1px solid var(--border);
     border-radius: 11px; padding: 16px 20px;
@@ -561,7 +561,7 @@ let editId = null;
 let searchVal = '';
 let filtMun = '', filtTipo = '', filtProv = '';
 // Estados por defecto: solo los operativos (no Retirado, Histórico, Firmado)
-let activeStates = new Set(['Captación','Publicado']);
+let activeStates = new Set(['Publicado']);
 let formDirty = false;
 let pendingTab = null;
 let sortDesc = true; // true = ref descendente (más nueva primero), false = ascendente
@@ -582,7 +582,7 @@ function doSwitchTab(tab) {
   formOpen = false; editIdx = null; editId = null;
   formDirty = false; pendingTab = null;
   searchVal = ''; filtMun = ''; filtTipo = ''; filtProv = '';
-  activeStates = new Set(['Captación','Publicado']);
+  activeStates = new Set(['Publicado']);
   leadSearchText = '';
   document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
   const tabId = 'tab-' + tab;
@@ -733,7 +733,22 @@ function deleteZona(mun, idx) {
 // ── DASHBOARD ────────────────────────────────────────────────────────────────
 function renderDashboard() {
   const dashEl = document.getElementById('dashboard');
-  if(dashEl) dashEl.innerHTML = '';
+  if(!dashEl) return;
+  const all = ['naves','oficinas','locales','pisos','chalets'].flatMap(t=>DB[t]||[]);
+  const nLeads = (DB.leads||[]).filter(function(l){return l.estado!=='Convertido a captación';}).length;
+  const items = [
+    {l:'Total propiedades', v:all.length, c:'#0f4c5c', fn:'openGlobalView(null)'},
+    {l:'🔍 Prospección',    v:nLeads,     c:'#f97316', fn:'switchTab(\'prospeccion\')'},
+    {l:'🟡 Captación',      v:all.filter(function(a){return a.estadoComercial==='Captación';}).length,  c:'#f59e0b', fn:'openGlobalView(\'Captación\')'},
+    {l:'🟢 Publicados',     v:all.filter(function(a){return a.estadoComercial==='Publicado';}).length,  c:'#10b981', fn:'openGlobalView(\'Publicado\')'},
+    {l:'🔵 Firmados',       v:all.filter(function(a){return a.estadoComercial==='Firmado';}).length,    c:'#0f4c5c', fn:'openGlobalView(\'Firmado\')'},
+  ];
+  dashEl.innerHTML = items.map(function(s){
+    return '<div onclick="'+s.fn+'" style="flex:1;min-width:100px;background:#fff;border-radius:10px;border:1px solid #e2e8f0;border-top:3px solid '+s.c+';padding:12px 16px;cursor:pointer;transition:box-shadow 0.15s" onmouseover="this.style.boxShadow=\'0 4px 14px rgba(0,0,0,0.08)\'" onmouseout="this.style.boxShadow=\'\'">'
+      +'<div style="font-size:10px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:0.4px;margin-bottom:5px">'+s.l+'</div>'
+      +'<div style="font-size:24px;font-weight:800;color:'+s.c+'">'+s.v+'</div>'
+      +'</div>';
+  }).join('');
 }
 
 function openGlobalView(estado) {
@@ -1462,6 +1477,47 @@ function assetCardHTML(a, tipo, realIdx) {
           ${a.refCatastral?`<div class="card-catastro">Catastro: ${escH(a.refCatastral)}</div>`:''}
           ${a.observaciones?`<div class="card-obs">${escH(a.observaciones)}</div>`:''}
           ${a.enlaceWeb?`<div style="margin-top:6px"><a href="${escH(a.enlaceWeb)}" target="_blank" rel="noopener" style="display:inline-flex;align-items:center;gap:5px;background:#f0f9fc;border:1px solid #bde0ed;border-radius:6px;padding:4px 12px;font-size:12px;font-weight:700;color:#0f4c5c;text-decoration:none">🔗 Ver anuncio</a></div>`:''}
+          ${(function(){
+            if(a.estadoComercial !== 'Captación') return '';
+            var ec = a.estadoCaptacion || 'Pendiente contacto';
+            var ecColor = ec==='Captado'?'#10b981':ec==='Descartado'?'#94a3b8':ec.includes('sin respuesta')?'#f59e0b':ec.includes('Contactado')?'#3b82f6':'#f97316';
+            var ecIcon = ec==='Captado'?'✅':ec==='Descartado'?'🚫':ec.includes('sin respuesta')?'⏳':ec.includes('Contactado')?'💬':'🔔';
+            var contactos = a.contactosCaptacion || [];
+            var histHTML = '';
+            if(contactos.length > 0) {
+              histHTML = '<div style="margin-top:8px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:8px 12px">'
+                + '<div style="font-size:10px;font-weight:800;color:#0f4c5c;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px">📋 Historial de contactos</div>'
+                + contactos.map(function(c, ci){
+                    var cIcon = c.canal==='WhatsApp'?'💬':c.canal==='Llamada'?'📞':'📝';
+                    var cColor = c.nota&&c.nota.startsWith('DESCARTADO')?'#ef4444':c.nota&&c.nota.startsWith('CAPTADO')?'#10b981':'#475569';
+                    return '<div style="font-size:11px;color:'+cColor+';padding:2px 0;display:flex;gap:6px;align-items:center;justify-content:space-between">'
+                      + '<div style="display:flex;gap:6px;align-items:flex-start">'
+                      + '<span style="white-space:nowrap;font-weight:600">'+cIcon+' '+escH(c.fecha)+'</span>'
+                      + '<span>'+escH(c.nota||c.canal)+'</span>'
+                      + '</div>'
+                      + '<button onclick="eliminarContactoCaptacion(\''+escH(a.ref)+'\',\''+tipo+'\','+realIdx+','+ci+')" title="Eliminar este registro" style="border:none;background:none;cursor:pointer;color:#cbd5e1;font-size:12px;padding:0 2px;line-height:1" onmouseover="this.style.color=\'#ef4444\'" onmouseout="this.style.color=\'#cbd5e1\'">✕</button>'
+                      + '</div>';
+                  }).join('')
+                + '</div>';
+            }
+            var prop2 = DB.propietarios.find(function(p){return p.id===a.propietarioId;});
+            var tel2 = (prop2&&prop2.tel1)?prop2.tel1:(a.leadTelefono||'');
+            var waIcon = tel2 ? '💬 WhatsApp' : '💬 Sin tel.';
+            var btnWA = '<button onclick="abrirWhatsAppCaptacion(\''+escH(a.ref)+'\',\''+tipo+'\','+realIdx+')" style="padding:6px 11px;border-radius:7px;border:none;background:#25d366;color:#fff;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit;display:flex;align-items:center;gap:4px">'+waIcon+'</button>';
+            var btnContacto = '<button onclick="registrarContactoCaptacion(\''+escH(a.ref)+'\',\''+tipo+'\','+realIdx+')" style="padding:6px 11px;border-radius:7px;border:1px solid #bde0ed;background:#f0f9fc;color:#0f4c5c;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit">📞 Registrar contacto</button>';
+            var btnCaptado = ec!=='Descartado'?'<button onclick="pasarAActivoPublicado(\''+escH(a.ref)+'\',\''+tipo+'\','+realIdx+')" style="padding:6px 11px;border-radius:7px;border:none;background:#10b981;color:#fff;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit">✅ Captado</button>':'';
+            var btnDescartar = ec!=='Descartado'&&ec!=='Captado'?'<button onclick="descartarCaptacion(\''+escH(a.ref)+'\',\''+tipo+'\','+realIdx+')" style="padding:6px 11px;border-radius:7px;border:1px solid #fca5a5;background:#fff;color:#ef4444;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit">🚫 Descartar</button>':'';
+            var btnVolver = '<button onclick="volverAProspeccion(\''+escH(a.ref)+'\',\''+tipo+'\','+realIdx+')" style="padding:6px 11px;border-radius:7px;border:1px solid #c2410c;background:#fff7ed;color:#c2410c;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit">↩ Volver a Prospección</button>';
+            return '<div style="margin-top:10px;border-top:1px dashed #e2e8f0;padding-top:10px">'
+              + '<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;flex-wrap:wrap">'
+              + '<span style="font-size:11px;font-weight:700;background:'+ecColor+'22;color:'+ecColor+';border:1px solid '+ecColor+'44;border-radius:20px;padding:3px 10px">'+ecIcon+' '+escH(ec)+'</span>'
+              + '</div>'
+              + histHTML
+              + '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px">'
+              + btnWA + btnContacto + btnCaptado + btnDescartar + btnVolver
+              + '</div>'
+              + '</div>';
+          })()}
         </div>
         <div class="card-actions">
           <button class="btn-sm btn-green" onclick="openCruce(${realIdx},'${tipo}')">🔗</button>
@@ -1470,6 +1526,132 @@ function assetCardHTML(a, tipo, realIdx) {
         </div>
       </div>
     </div>`;
+}
+
+// ── CAPTACION FUNCTIONS ───────────────────────────────────────────────────────
+function eliminarContactoCaptacion(ref, tipo, realIdx, contactoIdx) {
+  var a = DB[tipo][realIdx];
+  if(!a || !a.contactosCaptacion) return;
+  if(!confirm('¿Eliminar este registro de contacto?')) return;
+  a.contactosCaptacion.splice(contactoIdx, 1);
+  if(a.contactosCaptacion.length === 0) {
+    a.estadoCaptacion = 'Pendiente contacto';
+  } else {
+    var ultimo = a.contactosCaptacion[a.contactosCaptacion.length - 1];
+    if(ultimo.nota && ultimo.nota.startsWith('CAPTADO')) a.estadoCaptacion = 'Captado';
+    else if(ultimo.nota && ultimo.nota.startsWith('DESCARTADO')) a.estadoCaptacion = 'Descartado';
+    else a.estadoCaptacion = 'Contactado - sin respuesta';
+  }
+  DB[tipo][realIdx] = a;
+  saveDB();
+  openGlobalView('Captación');
+}
+
+function registrarContactoCaptacion(ref, tipo, realIdx) {
+  var a = DB[tipo][realIdx];
+  if(!a) return;
+  var fecha = new Date().toISOString().slice(0,10);
+  var nota = prompt('Nota sobre el contacto (opcional):', '');
+  if(nota === null) return;
+  if(!a.contactosCaptacion) a.contactosCaptacion = [];
+  a.contactosCaptacion.push({ fecha: fecha, canal: 'WhatsApp', nota: nota || '' });
+  a.estadoCaptacion = 'Contactado - sin respuesta';
+  DB[tipo][realIdx] = a;
+  saveDB();
+  openGlobalView('Captación');
+}
+
+function abrirWhatsAppCaptacion(ref, tipo, realIdx) {
+  var a = DB[tipo][realIdx];
+  if(!a) return;
+  var prop = (DB.propietarios||[]).find(function(p){ return p.id===a.propietarioId; });
+  var tel = (prop && prop.tel1) ? prop.tel1 : (a.leadTelefono||'');
+  var telLimpio = tel.replace(/[\s\-\+]/g,'');
+  if(telLimpio && telLimpio.length < 9) { alert('El número de teléfono no parece válido.'); return; }
+  var tipoActivo = tipo==='naves' ? 'nave' : tipo==='locales' ? 'local' : tipo==='oficinas' ? 'oficina' : 'inmueble';
+  var fuente = a.leadFuente || '';
+  var portalTxt = fuente ? ' en ' + fuente : '';
+  var msg = 'Hola, soy Francisco Díaz, de Díaz Novel Inmobiliaria.\n'
+    + 'Le escribo por su anuncio de ' + tipoActivo + portalTxt + '.\n'
+    + 'Estamos especializados en este tipo de activos y trabajamos analizando precio, competencia y tipo de actividad para reducir tiempos y evitar que el inmueble se quede parado.\n'
+    + 'Si le parece, puedo pasar a verlo y comentarle cómo lo enfocaría en su caso, sin compromiso.\n'
+    + 'Un saludo.';
+  if(telLimpio) {
+    var url = 'https://wa.me/34' + telLimpio.replace(/^(\+?34)/, '') + '?text=' + encodeURIComponent(msg);
+    window.open(url, '_blank');
+    if(!a.contactosCaptacion) a.contactosCaptacion = [];
+    a.contactosCaptacion.push({ fecha: new Date().toISOString().slice(0,10), canal: 'WhatsApp', nota: 'Mensaje inicial enviado' });
+    a.estadoCaptacion = 'Contactado - sin respuesta';
+    DB[tipo][realIdx] = a;
+    saveDB();
+    openGlobalView('Captación');
+  } else {
+    if(navigator.clipboard) {
+      navigator.clipboard.writeText(msg).then(function(){
+        alert('Sin teléfono registrado.\nMensaje copiado al portapapeles para que puedas enviarlo manualmente.');
+      });
+    } else {
+      prompt('Sin teléfono registrado. Copia el mensaje:', msg);
+    }
+  }
+}
+
+function descartarCaptacion(ref, tipo, realIdx) {
+  var motivo = prompt('Motivo del descarte (ej: no quiere agencia, precio no viable...):', '');
+  if(motivo === null) return;
+  var a = DB[tipo][realIdx];
+  if(!a) return;
+  a.estadoCaptacion = 'Descartado';
+  if(!a.contactosCaptacion) a.contactosCaptacion = [];
+  a.contactosCaptacion.push({ fecha: new Date().toISOString().slice(0,10), canal: 'Gestión', nota: 'DESCARTADO: ' + (motivo||'Sin motivo indicado') });
+  DB[tipo][realIdx] = a;
+  saveDB();
+  openGlobalView('Captación');
+}
+
+function pasarAActivoPublicado(ref, tipo, realIdx) {
+  var a = DB[tipo][realIdx];
+  if(!a) return;
+  if(!confirm('¿Confirmar que el propietario acepta? El activo pasará a estado Publicado.')) return;
+  a.refAnterior = a.ref;
+  a.estadoComercial = 'Publicado';
+  a.estadoCaptacion = 'Captado';
+  a.fechaPublicacion = new Date().toISOString().slice(0,10);
+  if(!a.contactosCaptacion) a.contactosCaptacion = [];
+  a.contactosCaptacion.push({ fecha: new Date().toISOString().slice(0,10), canal: 'Gestión', nota: 'CAPTADO — propietario acepta. Pasa a Publicado.' });
+  DB[tipo][realIdx] = a;
+  saveDB();
+  alert('¡Captado! Activo ' + a.ref + ' ahora en estado Publicado.');
+  openGlobalView('Publicado');
+}
+
+function volverAProspeccion(ref, tipo, realIdx) {
+  if(!confirm('¿Devolver este activo a Prospección?\nSe creará un nuevo lead con sus datos y el activo se eliminará de Captación.')) return;
+  var a = DB[tipo][realIdx];
+  if(!a) return;
+  var prop = (DB.propietarios||[]).find(function(p){ return p.id === a.propietarioId; });
+  var tipoActivo = tipo === 'naves' ? 'Nave industrial' : tipo === 'oficinas' ? 'Oficina' : 'Local comercial';
+  var precio = a.tipoOperacion === 'Alquiler' ? (a.precioAlquiler||'') : (a.precioVenta||a.precioAlquiler||'');
+  var lead = {
+    ref: genLeadRef(), origen: a.prospectadoPor || 'Laura',
+    fuente: a.leadFuente || 'Otro', fecha: new Date().toISOString().slice(0,10),
+    semana: getWeekLabel(), tipoActivo: tipoActivo, operacion: a.tipoOperacion || 'Venta',
+    perfil: a.leadPerfil || 'Por determinar',
+    zona: [a.zona, a.municipio].filter(Boolean).join(' · '),
+    direccion: a.direccion || '', superficie: a.superficieTotal || a.superficie || '',
+    precio: precio, nombre: prop ? prop.nombre : (a.leadNombre || ''),
+    telefono: prop ? prop.tel1 : (a.leadTelefono || ''),
+    email: prop ? prop.email : (a.leadEmail || ''),
+    estado: 'Sin revisar', enlace: a.enlaceWeb || '', proximoContacto: '',
+    obs: [a.observaciones||'', 'Captación revertida desde ' + ref].filter(Boolean).join(' · '),
+    createdAt: new Date().toISOString(), updatedAt: new Date().toISOString()
+  };
+  if(!DB.leads) DB.leads = [];
+  DB.leads.unshift(lead);
+  DB[tipo].splice(realIdx, 1);
+  saveDB();
+  alert('Lead ' + lead.ref + ' creado en Prospección.\nEl activo ' + ref + ' ha sido eliminado de Captación.');
+  doSwitchTab('prospeccion');
 }
 
 // ── SPECIFIC FIELDS ──────────────────────────────────────────────────────────
@@ -2977,65 +3159,17 @@ function renderHome(busqueda) {
   document.getElementById('content').innerHTML =
     '<div style="font-size:22px;font-weight:800;color:#0f4c5c;margin-bottom:16px">Inicio</div>'
 
-    // ── DASHBOARDS ──
-    + '<div style="display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:16px">'
-
-    + (function(){
-        var all = ['naves','oficinas','locales','pisos','chalets'].flatMap(function(t){return DB[t]||[];});
-        return '<div onclick="openGlobalView(null)" style="background:#fff;border-radius:12px;border:1px solid #e2e8f0;border-top:3px solid #0f4c5c;padding:14px 16px;cursor:pointer;transition:box-shadow 0.15s" onmouseover="this.style.boxShadow=\'0 4px 16px rgba(0,0,0,0.08)\'" onmouseout="this.style.boxShadow=\'\'">'
-          +'<div style="font-size:10px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px">Total propiedades</div>'
-          +'<div style="font-size:26px;font-weight:800;color:#0f4c5c">'+all.length+'</div>'
-          +'</div>';
-      })()
-
-    + (function(){
-        var n = (DB.leads||[]).filter(function(l){return l.estado!=='Convertido a captación';}).length;
-        return '<div onclick="switchTab(\'prospeccion\')" style="background:#fff;border-radius:12px;border:1px solid #e2e8f0;border-top:3px solid #f97316;padding:14px 16px;cursor:pointer;transition:box-shadow 0.15s" onmouseover="this.style.boxShadow=\'0 4px 16px rgba(0,0,0,0.08)\'" onmouseout="this.style.boxShadow=\'\'">'
-          +'<div style="font-size:10px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px">🔍 Prospección</div>'
-          +'<div style="font-size:26px;font-weight:800;color:#f97316">'+n+'</div>'
-          +'</div>';
-      })()
-
-    + (function(){
-        var all = ['naves','oficinas','locales','pisos','chalets'].flatMap(function(t){return DB[t]||[];});
-        var n = all.filter(function(a){return a.estadoComercial==='Captación';}).length;
-        return '<div onclick="openGlobalView(\'Captación\')" style="background:#fff;border-radius:12px;border:1px solid #e2e8f0;border-top:3px solid #f59e0b;padding:14px 16px;cursor:pointer;transition:box-shadow 0.15s" onmouseover="this.style.boxShadow=\'0 4px 16px rgba(0,0,0,0.08)\'" onmouseout="this.style.boxShadow=\'\'">'
-          +'<div style="font-size:10px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px">🟡 Captación</div>'
-          +'<div style="font-size:26px;font-weight:800;color:#f59e0b">'+n+'</div>'
-          +'</div>';
-      })()
-
-    + (function(){
-        var all = ['naves','oficinas','locales','pisos','chalets'].flatMap(function(t){return DB[t]||[];});
-        var n = all.filter(function(a){return a.estadoComercial==='Publicado';}).length;
-        return '<div onclick="openGlobalView(\'Publicado\')" style="background:#fff;border-radius:12px;border:1px solid #e2e8f0;border-top:3px solid #10b981;padding:14px 16px;cursor:pointer;transition:box-shadow 0.15s" onmouseover="this.style.boxShadow=\'0 4px 16px rgba(0,0,0,0.08)\'" onmouseout="this.style.boxShadow=\'\'">'
-          +'<div style="font-size:10px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px">🟢 Publicados</div>'
-          +'<div style="font-size:26px;font-weight:800;color:#10b981">'+n+'</div>'
-          +'</div>';
-      })()
-
-    + (function(){
-        var all = ['naves','oficinas','locales','pisos','chalets'].flatMap(function(t){return DB[t]||[];});
-        var n = all.filter(function(a){return a.estadoComercial==='Firmado';}).length;
-        return '<div onclick="openGlobalView(\'Firmado\')" style="background:#fff;border-radius:12px;border:1px solid #e2e8f0;border-top:3px solid #0f4c5c;padding:14px 16px;cursor:pointer;transition:box-shadow 0.15s" onmouseover="this.style.boxShadow=\'0 4px 16px rgba(0,0,0,0.08)\'" onmouseout="this.style.boxShadow=\'\'">'
-          +'<div style="font-size:10px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px">🔵 Firmados</div>'
-          +'<div style="font-size:26px;font-weight:800;color:#0f4c5c">'+n+'</div>'
-          +'</div>';
-      })()
-
-    + '</div>'
-
     // ── ACCESOS DIRECTOS ──
     + '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:20px">'
     + [
-        {l:'🏭 Naves',      t:'naves'},
-        {l:'🏪 Locales',    t:'locales'},
-        {l:'🏢 Oficinas',   t:'oficinas'},
-        {l:'🏠 Pisos',      t:'pisos'},
-        {l:'🏡 Casas',      t:'chalets'},
+        {l:'🏭 Naves',       t:'naves'},
+        {l:'🏪 Locales',     t:'locales'},
+        {l:'🏢 Oficinas',    t:'oficinas'},
+        {l:'🏠 Pisos',       t:'pisos'},
+        {l:'🏡 Casas',       t:'chalets'},
         {l:'👤 Propietarios',t:'propietarios'},
-        {l:'🤝 Clientes',   t:'clientes'},
-        {l:'📊 Resultados', t:'resultados'},
+        {l:'🤝 Clientes',    t:'clientes'},
+        {l:'📊 Resultados',  t:'resultados'},
       ].map(function(item){
         return '<button onclick="switchTab(\''+item.t+'\')" style="border:1.5px solid #e2e8f0;background:#f8fafc;color:#0f4c5c;border-radius:20px;padding:6px 14px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;transition:all 0.15s" onmouseover="this.style.background=\'#e0f2f7\';this.style.borderColor=\'#0f4c5c\'" onmouseout="this.style.background=\'#f8fafc\';this.style.borderColor=\'#e2e8f0\'">'+item.l+'</button>';
       }).join('')
@@ -3391,8 +3525,20 @@ function renderProspeccion() {
             </select>
           </div>
           <div style="display:flex;flex-direction:column;gap:3px">
-            <label style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px">Municipio / Zona</label>
-            <input type="text" id="lf_zona" value="${escH(d.zona||'')}" placeholder="Ej: Vélez-Málaga, Pol. Ind. El Polvero" style="padding:8px 10px;border-radius:7px;border:1.5px solid var(--border);font-size:13px;font-family:inherit">
+            <label style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px">Provincia</label>
+            <input type="text" id="lf_provincia" value="${escH(d.provincia||'')}" placeholder="Ej: Málaga" style="padding:8px 10px;border-radius:7px;border:1.5px solid var(--border);font-size:13px;font-family:inherit">
+          </div>
+          <div style="display:flex;flex-direction:column;gap:3px">
+            <label style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px">Municipio</label>
+            <input type="text" id="lf_municipio" value="${escH(d.municipio||'')}" placeholder="Ej: Vélez-Málaga" style="padding:8px 10px;border-radius:7px;border:1.5px solid var(--border);font-size:13px;font-family:inherit">
+          </div>
+          <div style="display:flex;flex-direction:column;gap:3px">
+            <label style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px">Zona / Barrio</label>
+            <input type="text" id="lf_zona_lead" value="${escH(d.zona||'')}" placeholder="Ej: Pol. Ind. El Polvero" style="padding:8px 10px;border-radius:7px;border:1.5px solid var(--border);font-size:13px;font-family:inherit">
+          </div>
+          <div style="display:flex;flex-direction:column;gap:3px;grid-column:span 3">
+            <label style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px">Dirección</label>
+            <input type="text" id="lf_direccion" value="${escH(d.direccion||'')}" placeholder="Calle, número..." style="padding:8px 10px;border-radius:7px;border:1.5px solid var(--border);font-size:13px;font-family:inherit">
           </div>
           <div style="display:flex;flex-direction:column;gap:3px">
             <label style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px">Superficie (m²)</label>
@@ -3461,7 +3607,7 @@ function renderProspeccion() {
       <span style="color:#c2410c;font-weight:700;font-size:13px">🔍 Prospección · ${total} leads</span>
     </div>
     <!-- Stats -->
-    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px">
+    <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-bottom:20px">
       <div style="background:#fff;border-radius:12px;border:1px solid var(--border);border-top:3px solid #f59e0b;padding:16px 18px;cursor:pointer;transition:box-shadow 0.15s" onmouseover="this.style.boxShadow='0 4px 16px rgba(0,0,0,0.08)'" onmouseout="this.style.boxShadow=''" onclick="leadFiltEstado='Sin revisar';leadFiltPerfil='';renderProspeccion()">
         <div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px">🆕 Sin revisar</div>
         <div style="font-size:28px;font-weight:800;color:#f59e0b">${sinRevisar}</div>
@@ -3473,6 +3619,10 @@ function renderProspeccion() {
       <div style="background:#fff;border-radius:12px;border:1px solid var(--border);border-top:3px solid #7c3aed;padding:16px 18px;cursor:pointer;transition:box-shadow 0.15s" onmouseover="this.style.boxShadow='0 4px 16px rgba(0,0,0,0.08)'" onmouseout="this.style.boxShadow=''" onclick="leadFiltEstado='Prioritario';leadFiltPerfil='';renderProspeccion()">
         <div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px">🎯 Prioritarios</div>
         <div style="font-size:28px;font-weight:800;color:#7c3aed">${prioritarios}</div>
+      </div>
+      <div style="background:#fff;border-radius:12px;border:1px solid var(--border);border-top:3px solid #94a3b8;padding:16px 18px;cursor:pointer;transition:box-shadow 0.15s" onmouseover="this.style.boxShadow='0 4px 16px rgba(0,0,0,0.08)'" onmouseout="this.style.boxShadow=''" onclick="leadFiltEstado='Descartado';leadFiltPerfil='';renderProspeccion()">
+        <div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px">❌ Descartados</div>
+        <div style="font-size:28px;font-weight:800;color:#94a3b8">${descartados}</div>
       </div>
       <div style="background:#fff;border-radius:12px;border:1px solid var(--border);border-top:3px solid var(--teal);padding:16px 18px;cursor:pointer;transition:box-shadow 0.15s" onmouseover="this.style.boxShadow='0 4px 16px rgba(0,0,0,0.08)'" onmouseout="this.style.boxShadow=''" onclick="leadFiltEstado='';leadFiltPerfil='';renderProspeccion()">
         <div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px">Total leads</div>
@@ -3514,7 +3664,6 @@ function renderProspeccion() {
           <option value="">Venta y alquiler</option>
           <option value="Venta"${leadFiltOperacion==='Venta'?' selected':''}>💶 Venta</option>
           <option value="Alquiler"${leadFiltOperacion==='Alquiler'?' selected':''}>🔑 Alquiler</option>
-          <option value="Ambos"${leadFiltOperacion==='Ambos'?' selected':''}>↔ Ambos</option>
         </select>
       </div>
     </div>
@@ -3569,8 +3718,9 @@ function renderProspeccion() {
           </div>
           <div>
             <div style="font-size:14px;font-weight:700;color:#1e293b;margin-bottom:4px">
-              ${escH(l.tipoActivo||'—')} · ${escH(l.zona||'Sin zona')}
+              ${escH(l.tipoActivo||'—')} · ${escH(l.zona||l.municipio||'Sin zona')}${l.municipio&&l.zona?' · '+escH(l.municipio):''}${l.provincia?' ('+escH(l.provincia)+')':''}
             </div>
+            ${l.direccion ? `<div style="font-size:12px;color:#64748b;margin-bottom:4px">📍 ${escH(l.direccion)}</div>` : ''}
             ${l.enlace ? `<div style="margin-bottom:6px"><a href="${escH(l.enlace)}" target="_blank" rel="noopener" style="display:inline-flex;align-items:center;gap:5px;background:#f0f9fc;border:1px solid #bde0ed;border-radius:6px;padding:4px 12px;font-size:12px;font-weight:700;color:#0f4c5c;text-decoration:none">🔗 Ver anuncio</a></div>` : ''}
             <div style="font-size:12px;color:var(--muted);display:flex;gap:10px;flex-wrap:wrap">
               <span>📍 ${escH(l.fuente||'—')}</span>
@@ -3720,6 +3870,8 @@ function filtrarLeadsLista() {
     var vencido = l.proximoContacto && l.proximoContacto < hoy && l.estado !== 'Descartado' && l.estado !== 'Convertido a captación';
     var perfColor = LEAD_PERF_COLOR[l.perfil] || '#94a3b8';
     var enlaceHTML = l.enlace ? '<div style="margin-bottom:6px"><a href="'+escH(l.enlace)+'" target="_blank" rel="noopener" style="display:inline-flex;align-items:center;gap:5px;background:#f0f9fc;border:1px solid #bde0ed;border-radius:6px;padding:4px 12px;font-size:12px;font-weight:700;color:#0f4c5c;text-decoration:none">🔗 Ver anuncio</a></div>' : '';
+    var direccionHTML = l.direccion ? '<div style="font-size:12px;color:#64748b;margin-bottom:4px">📍 '+escH(l.direccion)+'</div>' : '';
+    var zonaDisplay = escH(l.zona||l.municipio||'Sin zona') + (l.municipio&&l.zona?' · '+escH(l.municipio):'') + (l.provincia?' ('+escH(l.provincia)+')':'');
     var captarBtn = (l.estado !== 'Convertido a captación' && l.estado !== 'Descartado') ? '<button onclick="convertirACaptacion('+realIdx+')" style="padding:6px 12px;border-radius:7px;border:none;background:#10b981;color:#fff;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit">✅ Captar</button>' : '';
     return '<div data-real-idx="'+realIdx+'" style="background:#fff;border-radius:12px;border:1px solid '+(vencido?'#fca5a5':estColor+'44')+';padding:14px 18px;display:grid;grid-template-columns:32px auto 1fr auto;gap:12px;align-items:center">'
       +'<input type="checkbox" data-idx="'+realIdx+'" onchange="onLeadCheck(this)" style="width:18px;height:18px;cursor:pointer;accent-color:#0f4c5c">'
@@ -3728,7 +3880,8 @@ function filtrarLeadsLista() {
       +'<span style="font-size:10px;color:#64748b;font-family:monospace">'+escH(l.ref||'')+'</span>'
       +'</div>'
       +'<div>'
-      +'<div style="font-size:14px;font-weight:700;color:#1e293b;margin-bottom:4px">'+escH(l.tipoActivo||'—')+' · '+escH(l.zona||'Sin zona')+'</div>'
+      +'<div style="font-size:14px;font-weight:700;color:#1e293b;margin-bottom:4px">'+escH(l.tipoActivo||'—')+' · '+zonaDisplay+'</div>'
+      +direccionHTML
       +enlaceHTML
       +'<div style="font-size:12px;color:#64748b;display:flex;gap:10px;flex-wrap:wrap">'
       +'<span>📍 '+escH(l.fuente||'—')+'</span>'
@@ -3774,6 +3927,7 @@ function abrirNuevoLead() {
 function editarLead(idx) {
   leadFormOpen = true;
   leadEditIdx = idx;
+  window.scrollTo(0, 0);
   renderProspeccion();
 }
 
@@ -3781,6 +3935,7 @@ function cerrarLeadForm() {
   leadFormOpen = false;
   leadEditIdx = null;
   renderProspeccion();
+  setTimeout(function(){ window.scrollTo(0, 0); }, 50);
 }
 
 function guardarLead() {
@@ -3794,7 +3949,10 @@ function guardarLead() {
     tipoActivo: document.getElementById('lf_tipoActivo').value,
     operacion: document.getElementById('lf_operacion').value,
     perfil: document.getElementById('lf_perfil').value,
-    zona: document.getElementById('lf_zona').value,
+    zona: document.getElementById('lf_zona_lead').value,
+    direccion: document.getElementById('lf_direccion').value,
+    municipio: document.getElementById('lf_municipio').value,
+    provincia: document.getElementById('lf_provincia').value,
     superficie: document.getElementById('lf_superficie').value,
     precio: document.getElementById('lf_precio').value,
     nombre: document.getElementById('lf_nombre').value,
@@ -3807,6 +3965,7 @@ function guardarLead() {
     updatedAt: new Date().toISOString()
   };
   if(leadEditIdx !== null) {
+    lead.createdAt = DB.leads[leadEditIdx].createdAt || new Date().toISOString();
     DB.leads[leadEditIdx] = lead;
   } else {
     lead.createdAt = new Date().toISOString();
@@ -3816,6 +3975,7 @@ function guardarLead() {
   leadFormOpen = false;
   leadEditIdx = null;
   renderProspeccion();
+  setTimeout(function(){ window.scrollTo(0, 0); }, 50);
 }
 
 function eliminarLead(idx) {
