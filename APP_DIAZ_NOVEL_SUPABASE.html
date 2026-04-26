@@ -413,7 +413,7 @@
     <button class="tab-btn" onclick="switchTab('clientes')" id="tab-clientes">💼 Clientes</button>
     <button class="tab-btn" onclick="switchTab('resultados')" id="tab-resultados">📊 Resultados</button>
     <div style="width:1px;background:#e2e8f0;margin:4px 2px;flex-shrink:0"></div>
-    <button class="tab-btn" onclick="switchTab('prospeccion')" id="tab-prospeccion" style="background:#fff7ed;border-color:#fed7aa;color:#c2410c;font-weight:700">🔍 Prospección</button>
+
   </div>
 
   <!-- ESTADO FILTER BAR - solo visible en pestañas de propiedades -->
@@ -732,21 +732,8 @@ function deleteZona(mun, idx) {
 
 // ── DASHBOARD ────────────────────────────────────────────────────────────────
 function renderDashboard() {
-  const all = ['naves','oficinas','locales','pisos','chalets'].flatMap(t=>DB[t]||[]);
-  const stats = [
-    {l:'Total propiedades', v:all.length, c:'#0f4c5c', click:'openGlobalView(null)'},
-    {l:'Captación', v:all.filter(a=>a.estadoComercial==='Captación').length, c:'#f59e0b', click:'openGlobalView(\'Captación\')'},
-    {l:'Publicados', v:all.filter(a=>a.estadoComercial==='Publicado').length, c:'#10b981', click:'openGlobalView(\'Publicado\')'},
-    {l:'Firmados', v:all.filter(a=>a.estadoComercial==='Firmado').length, c:'#0f4c5c', click:'openGlobalView(\'Firmado\')'},
-    {l:'Propietarios', v:DB.propietarios.length, c:'#7c3aed', click:''},
-    {l:'Clientes', v:DB.clientes.length, c:'#0284c7', click:''},
-  ];
-  document.getElementById('dashboard').innerHTML = stats.map(s=>`
-    <div class="stat-card" style="border-top-color:${s.c};${s.click?'cursor:pointer;':''}transition:transform 0.15s,box-shadow 0.15s"
-      ${s.click?`onclick="${s.click}" onmouseover="this.style.transform='translateY(-3px)';this.style.boxShadow='0 6px 20px rgba(0,0,0,0.1)'" onmouseout="this.style.transform='';this.style.boxShadow=''"`:''}>
-      <div class="stat-num" style="color:${s.c}">${s.v}</div>
-      <div class="stat-lbl">${s.l}${s.click?'<span style="font-size:9px;color:#94a3b8;margin-left:4px">▶</span>':''}</div>
-    </div>`).join('');
+  const dashEl = document.getElementById('dashboard');
+  if(dashEl) dashEl.innerHTML = '';
 }
 
 function openGlobalView(estado) {
@@ -794,9 +781,16 @@ function openGlobalView(estado) {
       <span style="color:#cbd5e1;font-size:14px">›</span>
       <span style="font-weight:600;color:var(--text)">${titulo}</span>
     </div>
-    <div style="margin-bottom:16px">
-      <div style="font-size:18px;font-weight:800;color:#0f4c5c">${titulo}</div>
-      ${subTitle}
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:8px">
+      <div>
+        <div style="font-size:18px;font-weight:800;color:#0f4c5c">${titulo}</div>
+        ${subTitle}
+      </div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <button onclick="switchTab('locales')" style="padding:8px 14px;border-radius:8px;border:none;background:#059669;color:#fff;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit">+ Nuevo Local</button>
+        <button onclick="switchTab('naves')" style="padding:8px 14px;border-radius:8px;border:none;background:#0f4c5c;color:#fff;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit">+ Nueva Nave</button>
+        <button onclick="switchTab('oficinas')" style="padding:8px 14px;border-radius:8px;border:none;background:#0284c7;color:#fff;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit">+ Nueva Oficina</button>
+      </div>
     </div>
     ${searchBar}
     <div id="captacion-cards">${cardsHTML}</div>`;
@@ -2981,7 +2975,73 @@ function renderHome(busqueda) {
   }
 
   document.getElementById('content').innerHTML =
-    '<div style="font-size:22px;font-weight:800;color:#0f4c5c;margin-bottom:20px">Inicio</div>'
+    '<div style="font-size:22px;font-weight:800;color:#0f4c5c;margin-bottom:16px">Inicio</div>'
+
+    // ── DASHBOARDS ──
+    + '<div style="display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:16px">'
+
+    + (function(){
+        var all = ['naves','oficinas','locales','pisos','chalets'].flatMap(function(t){return DB[t]||[];});
+        return '<div onclick="openGlobalView(null)" style="background:#fff;border-radius:12px;border:1px solid #e2e8f0;border-top:3px solid #0f4c5c;padding:14px 16px;cursor:pointer;transition:box-shadow 0.15s" onmouseover="this.style.boxShadow=\'0 4px 16px rgba(0,0,0,0.08)\'" onmouseout="this.style.boxShadow=\'\'">'
+          +'<div style="font-size:10px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px">Total propiedades</div>'
+          +'<div style="font-size:26px;font-weight:800;color:#0f4c5c">'+all.length+'</div>'
+          +'</div>';
+      })()
+
+    + (function(){
+        var n = (DB.leads||[]).filter(function(l){return l.estado!=='Convertido a captación';}).length;
+        return '<div onclick="switchTab(\'prospeccion\')" style="background:#fff;border-radius:12px;border:1px solid #e2e8f0;border-top:3px solid #f97316;padding:14px 16px;cursor:pointer;transition:box-shadow 0.15s" onmouseover="this.style.boxShadow=\'0 4px 16px rgba(0,0,0,0.08)\'" onmouseout="this.style.boxShadow=\'\'">'
+          +'<div style="font-size:10px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px">🔍 Prospección</div>'
+          +'<div style="font-size:26px;font-weight:800;color:#f97316">'+n+'</div>'
+          +'</div>';
+      })()
+
+    + (function(){
+        var all = ['naves','oficinas','locales','pisos','chalets'].flatMap(function(t){return DB[t]||[];});
+        var n = all.filter(function(a){return a.estadoComercial==='Captación';}).length;
+        return '<div onclick="openGlobalView(\'Captación\')" style="background:#fff;border-radius:12px;border:1px solid #e2e8f0;border-top:3px solid #f59e0b;padding:14px 16px;cursor:pointer;transition:box-shadow 0.15s" onmouseover="this.style.boxShadow=\'0 4px 16px rgba(0,0,0,0.08)\'" onmouseout="this.style.boxShadow=\'\'">'
+          +'<div style="font-size:10px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px">🟡 Captación</div>'
+          +'<div style="font-size:26px;font-weight:800;color:#f59e0b">'+n+'</div>'
+          +'</div>';
+      })()
+
+    + (function(){
+        var all = ['naves','oficinas','locales','pisos','chalets'].flatMap(function(t){return DB[t]||[];});
+        var n = all.filter(function(a){return a.estadoComercial==='Publicado';}).length;
+        return '<div onclick="openGlobalView(\'Publicado\')" style="background:#fff;border-radius:12px;border:1px solid #e2e8f0;border-top:3px solid #10b981;padding:14px 16px;cursor:pointer;transition:box-shadow 0.15s" onmouseover="this.style.boxShadow=\'0 4px 16px rgba(0,0,0,0.08)\'" onmouseout="this.style.boxShadow=\'\'">'
+          +'<div style="font-size:10px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px">🟢 Publicados</div>'
+          +'<div style="font-size:26px;font-weight:800;color:#10b981">'+n+'</div>'
+          +'</div>';
+      })()
+
+    + (function(){
+        var all = ['naves','oficinas','locales','pisos','chalets'].flatMap(function(t){return DB[t]||[];});
+        var n = all.filter(function(a){return a.estadoComercial==='Firmado';}).length;
+        return '<div onclick="openGlobalView(\'Firmado\')" style="background:#fff;border-radius:12px;border:1px solid #e2e8f0;border-top:3px solid #0f4c5c;padding:14px 16px;cursor:pointer;transition:box-shadow 0.15s" onmouseover="this.style.boxShadow=\'0 4px 16px rgba(0,0,0,0.08)\'" onmouseout="this.style.boxShadow=\'\'">'
+          +'<div style="font-size:10px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px">🔵 Firmados</div>'
+          +'<div style="font-size:26px;font-weight:800;color:#0f4c5c">'+n+'</div>'
+          +'</div>';
+      })()
+
+    + '</div>'
+
+    // ── ACCESOS DIRECTOS ──
+    + '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:20px">'
+    + [
+        {l:'🏭 Naves',      t:'naves'},
+        {l:'🏪 Locales',    t:'locales'},
+        {l:'🏢 Oficinas',   t:'oficinas'},
+        {l:'🏠 Pisos',      t:'pisos'},
+        {l:'🏡 Casas',      t:'chalets'},
+        {l:'👤 Propietarios',t:'propietarios'},
+        {l:'🤝 Clientes',   t:'clientes'},
+        {l:'📊 Resultados', t:'resultados'},
+      ].map(function(item){
+        return '<button onclick="switchTab(\''+item.t+'\')" style="border:1.5px solid #e2e8f0;background:#f8fafc;color:#0f4c5c;border-radius:20px;padding:6px 14px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;transition:all 0.15s" onmouseover="this.style.background=\'#e0f2f7\';this.style.borderColor=\'#0f4c5c\'" onmouseout="this.style.background=\'#f8fafc\';this.style.borderColor=\'#e2e8f0\'">'+item.l+'</button>';
+      }).join('')
+    + '</div>'
+
+    // ── BUSCADOR + CUERPO ──
     + searchHTML
     + bodyHTML;
 
@@ -3704,7 +3764,11 @@ function getWeekLabel() {
 function abrirNuevoLead() {
   leadFormOpen = true;
   leadEditIdx = null;
-  renderProspeccion();
+  currentTab = 'prospeccion';
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('tab-prospeccion')?.classList.add('active');
+  render();
+  window.scrollTo(0,0);
 }
 
 function editarLead(idx) {
