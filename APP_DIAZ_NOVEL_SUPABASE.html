@@ -449,6 +449,185 @@ const SUPABASE_ANON_KEY = 'sb_publishable_iODlAKMnlxyIPsFT7ibPAQ_2FJZUUX2';
 
 const _supa = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
+// ── PRIORIDAD CAPTACIÓN ──────────────────────────────────────────────────────
+let _dnApiKey = '';
+
+function getDnApiKey() {
+  if (_dnApiKey) return _dnApiKey;
+  _dnApiKey = localStorage.getItem('dn_anthropic_key') || '';
+  return _dnApiKey;
+}
+
+function setDnApiKey(k) {
+  _dnApiKey = k.trim();
+  localStorage.setItem('dn_anthropic_key', _dnApiKey);
+}
+
+const PRIORIDAD_COLORS = {
+  'Trabajar ahora': { bg: '#fff7ed', border: '#f97316', badge: '#f97316', icon: '🔴' },
+  'En seguimiento': { bg: '#fffbeb', border: '#f59e0b', badge: '#d97706', icon: '🟡' },
+  'Aparcar':        { bg: '#f8fafc', border: '#cbd5e1', badge: '#64748b', icon: '⚪' }
+};
+
+async function analizarPrioridad(realIdx) {
+  const lead = DB.leads[realIdx];
+  if (!lead) return;
+
+  const apiKey = getDnApiKey();
+  if (!apiKey) {
+    const k = prompt('Introduce tu API key de Anthropic para usar el análisis de prioridad:');
+    if (!k || !k.trim()) return;
+    setDnApiKey(k);
+  }
+
+  // Mostrar spinner en el botón
+  const btnEl = document.getElementById('btn-analizar-' + realIdx);
+  if (btnEl) { btnEl.disabled = true; btnEl.textContent = '⏳ Analizando...'; }
+
+  const prompt = `Eres asesor estratégico de un agente inmobiliario autónomo especializado en activos terciarios (naves, locales, oficinas) en Málaga, Rincón de la Victoria y Vélez-Málaga. El agente trabaja solo y tiene capacidad máxima de 30 activos en cartera.
+
+OBJETIVO DEL NEGOCIO: Facturar 75.000€/año con 6-8 operaciones de ticket alto. Honorarios: 3%+IVA en venta al propietario, una mensualidad a cada parte en alquiler. Umbrales mínimos: venta >200.000€, alquiler >1.000€/mes. Prioridad estratégica: naves en venta > oficinas grandes en alquiler > locales en venta > resto.
+
+DATOS DEL LEAD A ANALIZAR:
+- Tipo de activo: ${lead.tipoActivo || '—'}
+- Operación: ${lead.operacion || '—'}
+- Zona: ${lead.zona || lead.municipio || '—'}
+- Superficie: ${lead.superficie ? lead.superficie + ' m²' : '—'}
+- Precio: ${lead.precio ? lead.precio + '€' : '—'}
+- Perfil propietario: ${lead.perfil || '—'}
+- Fuente: ${lead.fuente || '—'}
+- Observaciones: ${lead.obs || '—'}
+
+Responde ÚNICAMENTE con un objeto JSON sin ningún texto adicional, sin markdown, sin backticks:
+{"nivel":"Trabajar ahora","explicacion":"Texto directo de 1-2 frases máximo explicando por qué tiene esta prioridad. Sin tecnicismos, sin números de honorario. Orientado a acción."}
+
+Los tres niveles posibles son exactamente: "Trabajar ahora", "En seguimiento", "Aparcar".`;
+
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': getDnApiKey(),
+        'anthropic-version': '2023-06-01',
+        'anthropic-dangerous-direct-browser-access': 'true'
+      },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-5',
+        max_tokens: 300,
+        messages: [{ role: 'user', content: prompt }]
+      })
+    });
+
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.error?.message || 'Error API ' + res.status);
+    }
+
+    const data = await res.json();
+    const raw = data.content?.find(c => c.type === 'text')?.text || '';
+    const clean = raw.replace(/```json|```/g, '').trim();
+    const parsed = JSON.parse(clean);
+
+    if (!parsed.nivel || !parsed.explicacion) throw new Error('Respuesta inesperada');
+
+    // Guardar en el lead
+    DB.leads[realIdx].prioridad = parsed.nivel;
+    DB.leads[realIdx].prioridadExplicacion = parsed.explicacion;
+    DB.leads[realIdx].prioridadFecha = new Date().toISOString().slice(0, 10);
+    saveDB();
+
+    // Actualizar badge (en columna izquierda) y franja inferior sin rerenderizar todo
+    const badgeEl = document.getElementById('btn-analizar-' + realIdx) || document.querySelector(`[id="btn-analizar-${realIdx}"]`);
+    // Refrescar la tarjeta completa del lead de forma quirúrgica
+    const cardEl = document.querySelector(`[data-real-idx="${realIdx}"]`);
+    if (cardEl) {
+      const lead = DB.leads[realIdx];
+      const c = PRIORIDAD_COLORS[lead.prioridad] || PRIORIDAD_COLORS['Aparcar'];
+      // Actualizar badge en columna de estado
+      const badgeContainer = cardEl.querySelector(`#btn-analizar-${realIdx}`);
+      if (badgeContainer) {
+        badgeContainer.outerHTML = renderPrioridadBadge(lead, realIdx);
+      }
+      // Insertar o actualizar franja inferior
+      let franjaEl = document.getElementById('prioridad-exp-' + realIdx);
+      const franjaHTML = renderPrioridadFranja(lead, realIdx);
+      if (franjaEl) {
+        franjaEl.outerHTML = franjaHTML;
+      } else {
+        cardEl.insertAdjacentHTML('beforeend', franjaHTML);
+      }
+      // Mostrar la franja automáticamente tras analizar
+      const newFranja = document.getElementById('prioridad-exp-' + realIdx);
+      if (newFranja) newFranja.style.display = 'flex';
+    }
+
+  } catch(e) {
+    alert('Error al analizar: ' + e.message);
+    if (btnEl) { btnEl.disabled = false; btnEl.textContent = '🎯 Analizar'; }
+  }
+}
+
+function renderPrioridadBadge(lead, realIdx) {
+  const p = lead.prioridad;
+  const c = p ? (PRIORIDAD_COLORS[p] || PRIORIDAD_COLORS['Aparcar']) : null;
+  if (!p) {
+    return `<button id="btn-analizar-${realIdx}" onclick="analizarPrioridad(${realIdx})" style="padding:2px 8px;border-radius:20px;border:1.5px solid #f97316;background:#fff7ed;color:#c2410c;font-size:10px;font-weight:700;cursor:pointer;font-family:inherit;white-space:nowrap">🎯 Analizar</button>`;
+  }
+  return `<span style="background:${c.badge};color:#fff;font-size:10px;font-weight:800;padding:3px 8px;border-radius:20px;white-space:nowrap;cursor:pointer" onclick="togglePrioridadExp(${realIdx})" title="Ver/ocultar explicación">${c.icon} ${escH(p)}</span>`;
+}
+
+function renderPrioridadFranja(lead, realIdx) {
+  const p = lead.prioridad;
+  if (!p) return '';
+  const exp = lead.prioridadExplicacion || '';
+  const fecha = lead.prioridadFecha || '';
+  const c = PRIORIDAD_COLORS[p] || PRIORIDAD_COLORS['Aparcar'];
+  return `<div id="prioridad-exp-${realIdx}" style="display:none;border-top:1px solid ${c.border}44;background:${c.bg};padding:8px 18px 10px;border-radius:0 0 11px 11px;align-items:flex-start;justify-content:space-between;gap:10px">
+    <div style="flex:1">
+      <div style="font-size:12px;color:#374151;line-height:1.5">${escH(exp)}</div>
+      ${fecha ? `<div style="font-size:10px;color:#94a3b8;margin-top:3px">Analizado: ${escH(fecha)} · <button onclick="analizarPrioridad(${realIdx})" style="background:none;border:none;color:#94a3b8;font-size:10px;cursor:pointer;padding:0;font-family:inherit;text-decoration:underline">Reanalizar</button></div>` : ''}
+    </div>
+    <button onclick="togglePrioridadExp(${realIdx})" style="background:none;border:none;color:#94a3b8;font-size:16px;cursor:pointer;padding:0;line-height:1;flex-shrink:0;margin-left:8px" title="Cerrar">×</button>
+  </div>`;
+}
+
+function renderPrioridadBloque(lead, realIdx) { return ''; }
+
+function togglePrioridadExp(realIdx) {
+  const el = document.getElementById('prioridad-exp-' + realIdx);
+  if (!el) return;
+  el.style.display = el.style.display === 'none' || el.style.display === '' ? 'flex' : 'none';
+}
+function waLink(tel) {
+  if (!tel) return '';
+  var t = tel.toString().replace(/[\s\-\.\(\)]/g, '');
+  if (!t) return '';
+  // Añadir prefijo 34 si empieza por 6, 7 o 9 (España)
+  if (/^[679]/.test(t)) t = '34' + t;
+  else if (t.startsWith('+')) t = t.slice(1);
+  return 'https://wa.me/' + t;
+}
+
+function renderTelWA(tel, estiloTel, estiloWA) {
+  if (!tel) return '';
+  var telH = escH(tel);
+  var wa = waLink(tel);
+  var estT = estiloTel || 'color:var(--teal)';
+  var estW = estiloWA || 'display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;border-radius:50%;background:#25d366;color:#fff;font-size:11px;text-decoration:none;vertical-align:middle;margin-left:4px';
+  return '<a href="tel:'+telH+'" style="'+estT+'">'+telH+'</a>'
+       + '<a href="'+wa+'" target="_blank" rel="noopener" style="'+estW+'" title="WhatsApp">W</a>';
+}
+
+
+
+function ordenarPorPrioridad() {
+  const orden = { 'Trabajar ahora': 0, 'En seguimiento': 1, 'Aparcar': 2, undefined: 3 };
+  DB.leads.sort((a, b) => (orden[a.prioridad] ?? 3) - (orden[b.prioridad] ?? 3));
+  saveDB();
+  renderProspeccion();
+}
+
 // ── DATA ────────────────────────────────────────────────────────────────────
 const DEF = { naves:[], oficinas:[], locales:[], pisos:[], chalets:[], garajes:[], propietarios:[], clientes:[], leads:[], municipios:{Málaga:[],Granada:[]}, zonas:{} };
 let DB = {...DEF};
@@ -1393,9 +1572,9 @@ function openAssetDetail(ref) {
     <div class="prop-box">
       <div class="prop-name">${prop.nombre||''}${prop.empresa?` <span style="font-weight:400;color:#64748b;font-size:13px">· ${prop.empresa}</span>`:''}</div>
       <div>
-        ${prop.tel1?`<a href="tel:${prop.tel1}" class="prop-tel">📞 ${prop.tel1}</a>`:''}
-        ${prop.tel2?`<a href="tel:${prop.tel2}" class="prop-tel">📞 ${prop.tel2}</a>`:''}
-        ${prop.tel3?`<a href="tel:${prop.tel3}" class="prop-tel">📞 ${prop.tel3}</a>`:''}
+        ${prop.tel1?`<span class="prop-tel">📞 ${renderTelWA(prop.tel1)}</span>`:''}
+        ${prop.tel2?`<span class="prop-tel">📞 ${renderTelWA(prop.tel2)}</span>`:''}
+        ${prop.tel3?`<span class="prop-tel">📞 ${renderTelWA(prop.tel3)}</span>`:''}
         ${prop.email?`<a href="mailto:${prop.email}" class="prop-tel">✉️ ${prop.email}</a>`:''}
       </div>
       ${prop.observaciones?`<div class="obs" style="margin-top:10px">${prop.observaciones}</div>`:''}
@@ -1467,13 +1646,13 @@ function assetCardHTML(a, tipo, realIdx) {
           ${prop
   ? `<div class="card-prop" style="display:flex;align-items:center;gap:8px;margin-top:4px">
        <span style="font-size:11px;color:#0f4c5c;font-weight:700">👤 ${escH(prop.nombre)}</span>
-       ${prop.tel1?`<a href="tel:${escH(prop.tel1)}" style="font-size:11px;color:#1a6678;font-weight:600;text-decoration:none;background:#e0f2f7;border-radius:5px;padding:1px 8px" onclick="event.stopPropagation()">📞 ${escH(prop.tel1)}</a>`:''}
-       ${prop.tel2?`<a href="tel:${escH(prop.tel2)}" style="font-size:11px;color:#1a6678;font-weight:600;text-decoration:none;background:#e0f2f7;border-radius:5px;padding:1px 8px" onclick="event.stopPropagation()">📞 ${escH(prop.tel2)}</a>`:''}
+       ${prop.tel1?`<span style="display:inline-flex;align-items:center;gap:4px;background:#e0f2f7;border-radius:5px;padding:1px 8px;font-size:11px;font-weight:600" onclick="event.stopPropagation()">📞 ${renderTelWA(prop.tel1,'color:#1a6678;font-weight:600;text-decoration:none','display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;border-radius:50%;background:#25d366;color:#fff;font-size:10px;text-decoration:none;margin-left:2px')}</span>`:''}
+       ${prop.tel2?`<span style="display:inline-flex;align-items:center;gap:4px;background:#e0f2f7;border-radius:5px;padding:1px 8px;font-size:11px;font-weight:600" onclick="event.stopPropagation()">📞 ${renderTelWA(prop.tel2,'color:#1a6678;font-weight:600;text-decoration:none','display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;border-radius:50%;background:#25d366;color:#fff;font-size:10px;text-decoration:none;margin-left:2px')}</span>`:''}
      </div>`
   : (function(){
       var html = '<div style="margin-top:4px;display:flex;align-items:center;gap:8px;flex-wrap:wrap">';
       if(a.leadNombre) html += '<span style="font-size:11px;color:#0f4c5c;font-weight:700">&#128100; '+escH(a.leadNombre)+'</span>';
-      if(a.leadTelefono) html += '<a href="tel:'+escH(a.leadTelefono)+'" style="font-size:11px;color:#1a6678;font-weight:600;text-decoration:none;background:#e0f2f7;border-radius:5px;padding:1px 8px" onclick="event.stopPropagation()">&#128222; '+escH(a.leadTelefono)+'</a>';
+      if(a.leadTelefono) html += '<span style="display:inline-flex;align-items:center;gap:4px;background:#e0f2f7;border-radius:5px;padding:1px 8px;font-size:11px;font-weight:600" onclick="event.stopPropagation()">📞 '+renderTelWA(a.leadTelefono,'color:#1a6678;font-weight:600;text-decoration:none','display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;border-radius:50%;background:#25d366;color:#fff;font-size:10px;text-decoration:none;margin-left:2px')+'</span>';
       html += '<span onclick="openEdit(' + realIdx + ',&quot;' + tipo + '&quot;)" style="font-size:10px;color:#f97316;font-weight:700;cursor:pointer;background:#fff7ed;border:1px solid #fed7aa;border-radius:5px;padding:1px 9px">&#9888; Vincular</span>';
       html += '</div>';
       return html;
@@ -1990,9 +2169,9 @@ function propCardHTML(p) {
             ${refList.length===0?`<span style="font-size:11px;color:#94a3b8;font-style:italic">Sin propiedades vinculadas</span>`:''}
           </div>
           <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:4px">
-            <span style="background:#f0f9fc;border:1px solid #bde0ed;border-radius:6px;padding:3px 10px;font-size:12px;font-weight:600;color:#0f4c5c">📞 ${escH(p.tel1)}</span>
-            ${p.tel2?`<span style="background:#f0f9fc;border:1px solid #bde0ed;border-radius:6px;padding:3px 10px;font-size:12px;color:#64748b">📞 ${escH(p.tel2)}</span>`:''}
-            ${p.tel3?`<span style="background:#f0f9fc;border:1px solid #bde0ed;border-radius:6px;padding:3px 10px;font-size:12px;color:#64748b">📞 ${escH(p.tel3)}</span>`:''}
+            <span style="background:#f0f9fc;border:1px solid #bde0ed;border-radius:6px;padding:3px 10px;font-size:12px;font-weight:600;color:#0f4c5c;display:inline-flex;align-items:center;gap:4px">📞 ${renderTelWA(p.tel1,'font-size:12px;font-weight:600;color:#0f4c5c;text-decoration:none','display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;border-radius:50%;background:#25d366;color:#fff;font-size:10px;text-decoration:none;margin-left:4px')}</span>
+            ${p.tel2?`<span style="background:#f0f9fc;border:1px solid #bde0ed;border-radius:6px;padding:3px 10px;font-size:12px;color:#64748b;display:inline-flex;align-items:center;gap:4px">📞 ${renderTelWA(p.tel2,'color:#64748b;text-decoration:none','display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;border-radius:50%;background:#25d366;color:#fff;font-size:10px;text-decoration:none;margin-left:4px')}</span>`:''}
+            ${p.tel3?`<span style="background:#f0f9fc;border:1px solid #bde0ed;border-radius:6px;padding:3px 10px;font-size:12px;color:#64748b;display:inline-flex;align-items:center;gap:4px">📞 ${renderTelWA(p.tel3,'color:#64748b;text-decoration:none','display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;border-radius:50%;background:#25d366;color:#fff;font-size:10px;text-decoration:none;margin-left:4px')}</span>`:''}
             ${p.email?`<span style="font-size:12px;color:#64748b">✉️ ${escH(p.email)}</span>`:''}
           </div>
           ${p.origen?`<div style="font-size:11px;color:#94a3b8;margin-top:2px">Origen: ${escH(p.origen)}</div>`:''}
@@ -2133,7 +2312,7 @@ function cliCardHTML(c) {
           </div>
           ${c.empresa?`<div style="font-size:12px;color:#64748b">${escH(c.empresa)}</div>`:''}
           <div class="card-meta">
-            <span>📞 ${escH(c.telefono)}</span>
+            <span style="display:inline-flex;align-items:center;gap:4px">📞 ${renderTelWA(c.telefono,'color:var(--muted);text-decoration:none','display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;border-radius:50%;background:#25d366;color:#fff;font-size:10px;text-decoration:none;margin-left:4px')}</span>
             ${c.email?`<span>✉️ ${escH(c.email)}</span>`:''}
             ${c.presupuestoMax?`<span>💶 Hasta ${eur(c.presupuestoMax)}</span>`:''}
             ${c.superficieMin?`<span>📐 Desde ${escH(c.superficieMin)} m²</span>`:''}
@@ -2224,7 +2403,7 @@ function openCruce(idx, tipo) {
           <div>
             <div class="cruce-name">${escH(c.nombre)}</div>
             ${c.empresa?`<div class="cruce-detail">${escH(c.empresa)}</div>`:''}
-            <div class="cruce-tel">${escH(c.telefono)}</div>
+            <div class="cruce-tel" style="display:flex;align-items:center;gap:4px">${renderTelWA(c.telefono,'color:inherit;text-decoration:none','display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;border-radius:50%;background:#25d366;color:#fff;font-size:10px;text-decoration:none;margin-left:4px')}</div>
           </div>
           ${badge('Compatibilidad '+c.nivel, c.nivel==='alto'?'#10b981':'#f59e0b')}
         </div>`).join('')
@@ -3442,7 +3621,7 @@ function renderOrigenRadios(selected) {
 
 let leadFormOpen = false;
 let leadEditIdx = null;
-let leadFiltEstado = '';
+let leadFiltEstado = 'Sin revisar';
 let leadFiltFuente = '';
 let leadFiltTipo = '';
 let leadFiltPerfil = '';
@@ -3648,6 +3827,8 @@ function renderProspeccion() {
       <button onclick="abrirNuevoLead()" style="padding:9px 18px;border-radius:8px;border:none;background:var(--teal);color:#fff;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit">➕ Nuevo lead</button>
       <button onclick="exportarLeadsCSV()" style="padding:9px 16px;border-radius:8px;border:1.5px solid var(--border);background:#fff;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;color:var(--teal)">⬇ CSV</button>
       <button onclick="exportXLSXLeads()" style="padding:9px 16px;border-radius:8px;border:1.5px solid #bbf7d0;background:#f0fdf4;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;color:#166534">📥 Excel</button>
+      <button onclick="ordenarPorPrioridad()" style="padding:9px 16px;border-radius:8px;border:1.5px solid #f97316;background:#fff7ed;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;color:#c2410c">🎯 Ordenar por prioridad</button>
+      <button onclick="(function(){var k=prompt('API key de Anthropic:',getDnApiKey());if(k!==null)setDnApiKey(k);})()" style="padding:9px 14px;border-radius:8px;border:1.5px solid #bde0ed;background:#f0f9fc;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;color:var(--teal)" title="Configurar API key">🔑 API key</button>
       <div style="flex:1;min-width:140px">
         <select onchange="leadFiltEstado=this.value;filtrarLeadsLista()" style="width:100%;padding:8px 10px;border-radius:8px;border:1.5px solid var(--border);font-size:13px;font-family:inherit;background:#f8fafc">
           <option value="">Todos los estados</option>
@@ -3688,6 +3869,7 @@ function renderProspeccion() {
           <option value="precio_desc"${leadOrden==='precio_desc'?' selected':''}>💶 Precio mayor primero</option>
           <option value="precio_asc"${leadOrden==='precio_asc'?' selected':''}>💶 Precio menor primero</option>
           <option value="zona"${leadOrden==='zona'?' selected':''}>📍 Zona A→Z</option>
+          <option value="prioridad"${leadOrden==='prioridad'?' selected':''}>🎯 Prioridad captación</option>
         </select>
       </div>
     </div>
@@ -3734,37 +3916,41 @@ function renderProspeccion() {
         const hoy = new Date().toISOString().slice(0,10);
         const vencido = l.proximoContacto && l.proximoContacto < hoy && l.estado !== 'Descartado' && l.estado !== 'Convertido a captación';
         const perfColor = LEAD_PERF_COLOR[l.perfil] || '#94a3b8';
-        return `<div data-real-idx="${realIdx}" style="background:#fff;border-radius:12px;border:1px solid ${vencido?'#fca5a5':estColor+'44'};padding:14px 18px;display:grid;grid-template-columns:32px auto 1fr auto;gap:12px;align-items:center">
-          <input type="checkbox" data-idx="${realIdx}" onchange="onLeadCheck(this)" style="width:18px;height:18px;cursor:pointer;accent-color:#0f4c5c">
-          <div style="display:flex;flex-direction:column;align-items:center;gap:4px;min-width:80px">
-            <span style="background:${estColor};color:#fff;font-size:10px;font-weight:700;padding:3px 8px;border-radius:20px;white-space:nowrap">${escH(l.estado||'Sin revisar')}</span>
-            <span style="font-size:10px;color:var(--muted);font-family:monospace">${escH(l.ref||'')}</span>
-          </div>
-          <div>
-            <div style="font-size:14px;font-weight:700;color:#1e293b;margin-bottom:4px">
-              ${escH(l.tipoActivo||'—')} · ${escH(l.zona||l.municipio||'Sin zona')}${l.municipio&&l.zona?' · '+escH(l.municipio):''}${l.provincia?' ('+escH(l.provincia)+')':''}
+        return `<div data-real-idx="${realIdx}" style="background:#fff;border-radius:12px;border:1px solid ${vencido?'#fca5a5':estColor+'44'};overflow:hidden">
+          <div style="padding:12px 18px;display:grid;grid-template-columns:32px auto 1fr auto;gap:12px;align-items:start">
+            <input type="checkbox" data-idx="${realIdx}" onchange="onLeadCheck(this)" style="width:18px;height:18px;cursor:pointer;accent-color:#0f4c5c;margin-top:2px">
+            <div style="display:flex;flex-direction:column;align-items:center;gap:4px;min-width:80px">
+              <span style="background:${estColor};color:#fff;font-size:10px;font-weight:700;padding:3px 8px;border-radius:20px;white-space:nowrap">${escH(l.estado||'Sin revisar')}</span>
+              <span style="font-size:10px;color:var(--muted);font-family:monospace">${escH(l.ref||'')}</span>
+              ${renderPrioridadBadge(l, realIdx)}
             </div>
-            ${l.direccion ? `<div style="font-size:12px;color:#64748b;margin-bottom:4px">📍 ${escH(l.direccion)}</div>` : ''}
-            ${l.enlace ? `<div style="margin-bottom:6px"><a href="${escH(l.enlace)}" target="_blank" rel="noopener" style="display:inline-flex;align-items:center;gap:5px;background:#f0f9fc;border:1px solid #bde0ed;border-radius:6px;padding:4px 12px;font-size:12px;font-weight:700;color:#0f4c5c;text-decoration:none">🔗 Ver anuncio</a></div>` : ''}
-            <div style="font-size:12px;color:var(--muted);display:flex;gap:10px;flex-wrap:wrap">
-              <span>📍 ${escH(l.fuente||'—')}</span>
-              <span>📋 ${escH(l.operacion||'—')}</span>
-              ${l.superficie ? `<span>📐 ${escH(l.superficie)} m²</span>` : ''}
-              ${l.precio ? `<span>💶 ${escH(l.precio)}</span>` : ''}
-              ${l.telefono ? `<span>📞 <a href="tel:${escH(l.telefono)}" style="color:var(--teal)">${escH(l.telefono)}</a></span>` : ''}
-              ${l.nombre ? `<span>👤 ${escH(l.nombre)}</span>` : ''}
-              <span style="color:${perfColor};font-weight:600">${escH(l.perfil||'—')}</span>
-              ${renderOrigenBadge(l.origen||'Laura')}
-              ${l.fecha ? `<span>📅 ${escH(l.fecha)}</span>` : ''}
-              ${renderFechaBadge(vencido, l.proximoContacto)}
+            <div>
+              <div style="font-size:14px;font-weight:700;color:#1e293b;margin-bottom:4px">
+                ${escH(l.tipoActivo||'—')} · ${escH(l.zona||l.municipio||'Sin zona')}${l.municipio&&l.zona?' · '+escH(l.municipio):''}${l.provincia?' ('+escH(l.provincia)+')':''}
+              </div>
+              ${l.direccion ? `<div style="font-size:12px;color:#64748b;margin-bottom:4px">📍 ${escH(l.direccion)}</div>` : ''}
+              ${l.enlace ? `<div style="margin-bottom:6px"><a href="${escH(l.enlace)}" target="_blank" rel="noopener" style="display:inline-flex;align-items:center;gap:5px;background:#f0f9fc;border:1px solid #bde0ed;border-radius:6px;padding:4px 12px;font-size:12px;font-weight:700;color:#0f4c5c;text-decoration:none">🔗 Ver anuncio</a></div>` : ''}
+              <div style="font-size:12px;color:var(--muted);display:flex;gap:10px;flex-wrap:wrap">
+                <span>📍 ${escH(l.fuente||'—')}</span>
+                <span>📋 ${escH(l.operacion||'—')}</span>
+                ${l.superficie ? `<span>📐 ${escH(l.superficie)} m²</span>` : ''}
+                ${l.precio ? `<span>💶 ${escH(l.precio)}</span>` : ''}
+                ${l.telefono ? `<span>📞 <a href="tel:${escH(l.telefono)}" style="color:var(--teal)">${escH(l.telefono)}</a></span>` : ''}
+                ${l.nombre ? `<span>👤 ${escH(l.nombre)}</span>` : ''}
+                <span style="color:${perfColor};font-weight:600">${escH(l.perfil||'—')}</span>
+                ${renderOrigenBadge(l.origen||'Laura')}
+                ${l.fecha ? `<span>📅 ${escH(l.fecha)}</span>` : ''}
+                ${renderFechaBadge(vencido, l.proximoContacto)}
+              </div>
+              ${l.obs ? `<div style="font-size:12px;color:var(--muted);margin-top:4px;font-style:italic">${escH(l.obs)}</div>` : ''}
             </div>
-            ${l.obs ? `<div style="font-size:12px;color:var(--muted);margin-top:4px;font-style:italic">${escH(l.obs)}</div>` : ''}
+            <div style="display:flex;flex-direction:column;gap:6px;align-items:flex-end;min-width:110px">
+              <button onclick="editarLead(${realIdx})" style="padding:6px 12px;border-radius:7px;border:1.5px solid var(--border);background:#f8fafc;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;color:var(--teal);width:100%">✏️ Editar</button>
+              ${l.estado !== 'Convertido a captación' && l.estado !== 'Descartado' ? `<button onclick="convertirACaptacion(${realIdx})" style="padding:6px 12px;border-radius:7px;border:none;background:#10b981;color:#fff;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;width:100%">✅ Captar</button>` : ''}
+              <button onclick="eliminarLead(${realIdx})" style="padding:6px 12px;border-radius:7px;border:1.5px solid #fca5a5;background:#fff;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;color:#ef4444;width:100%">🗑</button>
+            </div>
           </div>
-          <div style="display:flex;flex-direction:column;gap:6px;align-items:flex-end">
-            <button onclick="editarLead(${realIdx})" style="padding:6px 12px;border-radius:7px;border:1.5px solid var(--border);background:#f8fafc;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;color:var(--teal)">✏️ Editar</button>
-            ${l.estado !== 'Convertido a captación' && l.estado !== 'Descartado' ? `<button onclick="convertirACaptacion(${realIdx})" style="padding:6px 12px;border-radius:7px;border:none;background:#10b981;color:#fff;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit">✅ Captar</button>` : ''}
-            <button onclick="eliminarLead(${realIdx})" style="padding:6px 12px;border-radius:7px;border:1.5px solid #fca5a5;background:#fff;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;color:#ef4444">🗑</button>
-          </div>
+          ${renderPrioridadFranja(l, realIdx)}
         </div>`;
       }).join('')}
     </div>`}
@@ -3898,6 +4084,11 @@ function filtrarLeadsLista() {
       var pa2 = parseFloat((a.precio||'0').replace(/[^\d.]/g,''))||0;
       var pb2 = parseFloat((b.precio||'0').replace(/[^\d.]/g,''))||0;
       return pa2 - pb2;
+    } else if(leadOrden === 'prioridad') {
+      var _po = {'Trabajar ahora':0,'En seguimiento':1,'Aparcar':2};
+      var _pa = _po[a.prioridad] !== undefined ? _po[a.prioridad] : 3;
+      var _pb = _po[b.prioridad] !== undefined ? _po[b.prioridad] : 3;
+      return _pa - _pb;
     } else if(leadOrden === 'zona') {
       return (a.zona||a.municipio||'').localeCompare(b.zona||b.municipio||'');
     }
@@ -3944,10 +4135,11 @@ function filtrarLeadsLista() {
       +'</div>'
       +(l.obs?'<div style="font-size:12px;color:#64748b;margin-top:4px;font-style:italic">'+escH(l.obs)+'</div>':'')
       +'</div>'
-      +'<div style="display:flex;flex-direction:column;gap:6px;align-items:flex-end">'
-      +'<button onclick="editarLead('+realIdx+')" style="padding:6px 12px;border-radius:7px;border:1.5px solid #e2e8f0;background:#f8fafc;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;color:#0f4c5c">✏️ Editar</button>'
+      +'<div style="display:flex;flex-direction:column;gap:6px;align-items:flex-end;min-width:130px">'
+      +'<button onclick="editarLead('+realIdx+')" style="padding:6px 12px;border-radius:7px;border:1.5px solid #e2e8f0;background:#f8fafc;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;color:#0f4c5c;width:100%">✏️ Editar</button>'
       +captarBtn
-      +'<button onclick="eliminarLead('+realIdx+')" style="padding:6px 12px;border-radius:7px;border:1.5px solid #fca5a5;background:#fff;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;color:#ef4444">🗑</button>'
+      +'<button onclick="eliminarLead('+realIdx+')" style="padding:6px 12px;border-radius:7px;border:1.5px solid #fca5a5;background:#fff;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;color:#ef4444;width:100%">🗑</button>'
+      +renderPrioridadBloque(l, realIdx)
       +'</div>'
       +'</div>';
   }).join('');
