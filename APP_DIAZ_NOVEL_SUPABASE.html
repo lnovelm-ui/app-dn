@@ -3924,24 +3924,28 @@ function abrirNuevoLead() {
   window.scrollTo(0,0);
 }
 
+var _leadScrollY = 0;
+
 function editarLead(idx) {
+  _leadScrollY = window.scrollY;
   leadFormOpen = true;
   leadEditIdx = idx;
-  window.scrollTo(0, 0);
   renderProspeccion();
+  window.scrollTo(0, 0);
 }
 
 function cerrarLeadForm() {
   leadFormOpen = false;
   leadEditIdx = null;
   renderProspeccion();
-  setTimeout(function(){ window.scrollTo(0, 0); }, 50);
+  setTimeout(function(){ window.scrollTo(0, _leadScrollY); }, 30);
 }
 
 function guardarLead() {
   if(!DB.leads) DB.leads = [];
+  const wasEdit = leadEditIdx !== null;
   const lead = {
-    ref: leadEditIdx !== null ? (DB.leads[leadEditIdx].ref || genLeadRef()) : genLeadRef(),
+    ref: wasEdit ? (DB.leads[leadEditIdx].ref || genLeadRef()) : genLeadRef(),
     origen: (document.querySelector('input[name="lf_origen"]:checked') || {value:'Laura'}).value,
     fuente: document.getElementById('lf_fuente').value,
     fecha: document.getElementById('lf_fecha').value,
@@ -3964,7 +3968,7 @@ function guardarLead() {
     obs: document.getElementById('lf_obs').value,
     updatedAt: new Date().toISOString()
   };
-  if(leadEditIdx !== null) {
+  if(wasEdit) {
     lead.createdAt = DB.leads[leadEditIdx].createdAt || new Date().toISOString();
     DB.leads[leadEditIdx] = lead;
   } else {
@@ -3975,7 +3979,7 @@ function guardarLead() {
   leadFormOpen = false;
   leadEditIdx = null;
   renderProspeccion();
-  setTimeout(function(){ window.scrollTo(0, 0); }, 50);
+  setTimeout(function(){ window.scrollTo(0, wasEdit ? _leadScrollY : 0); }, 30);
 }
 
 function eliminarLead(idx) {
