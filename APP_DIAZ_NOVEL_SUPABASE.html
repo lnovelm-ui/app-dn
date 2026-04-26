@@ -583,6 +583,7 @@ function doSwitchTab(tab) {
   formDirty = false; pendingTab = null;
   searchVal = ''; filtMun = ''; filtTipo = ''; filtProv = '';
   activeStates = new Set(['Captación','Publicado']);
+  leadSearchText = '';
   document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
   const tabId = 'tab-' + tab;
   document.getElementById(tabId)?.classList.add('active');
@@ -3424,32 +3425,32 @@ function renderProspeccion() {
       <button onclick="abrirNuevoLead()" style="padding:9px 18px;border-radius:8px;border:none;background:var(--teal);color:#fff;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit">➕ Nuevo lead</button>
       <button onclick="exportarLeadsCSV()" style="padding:9px 16px;border-radius:8px;border:1.5px solid var(--border);background:#fff;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;color:var(--teal)">⬇ CSV</button>
       <div style="flex:1;min-width:140px">
-        <select onchange="leadFiltEstado=this.value;renderProspeccion()" style="width:100%;padding:8px 10px;border-radius:8px;border:1.5px solid var(--border);font-size:13px;font-family:inherit;background:#f8fafc">
+        <select onchange="leadFiltEstado=this.value;filtrarLeadsLista()" style="width:100%;padding:8px 10px;border-radius:8px;border:1.5px solid var(--border);font-size:13px;font-family:inherit;background:#f8fafc">
           <option value="">Todos los estados</option>
           ${LEAD_ESTADOS_VISIBLES.map(e=>`<option value="${escH(e)}"${e===leadFiltEstado?' selected':''}>${escH(e)}</option>`).join('')}
         </select>
       </div>
       <div style="flex:1;min-width:140px">
-        <select onchange="leadFiltFuente=this.value;renderProspeccion()" style="width:100%;padding:8px 10px;border-radius:8px;border:1.5px solid var(--border);font-size:13px;font-family:inherit;background:#f8fafc">
+        <select onchange="leadFiltFuente=this.value;filtrarLeadsLista()" style="width:100%;padding:8px 10px;border-radius:8px;border:1.5px solid var(--border);font-size:13px;font-family:inherit;background:#f8fafc">
           <option value="">Todas las fuentes</option>
           ${LEAD_FUENTES.map(f=>`<option value="${escH(f)}"${f===leadFiltFuente?' selected':''}>${escH(f)}</option>`).join('')}
         </select>
       </div>
       <div style="flex:1;min-width:140px">
-        <select onchange="leadFiltTipo=this.value;renderProspeccion()" style="width:100%;padding:8px 10px;border-radius:8px;border:1.5px solid var(--border);font-size:13px;font-family:inherit;background:#f8fafc">
+        <select onchange="leadFiltTipo=this.value;filtrarLeadsLista()" style="width:100%;padding:8px 10px;border-radius:8px;border:1.5px solid var(--border);font-size:13px;font-family:inherit;background:#f8fafc">
           <option value="">Todos los tipos</option>
           ${LEAD_TIPOS.map(t=>`<option value="${escH(t)}"${t===leadFiltTipo?' selected':''}>${escH(t)}</option>`).join('')}
         </select>
       </div>
       <div style="flex:1;min-width:140px">
-        <select onchange="leadFiltPerfil=this.value;renderProspeccion()" style="width:100%;padding:8px 10px;border-radius:8px;border:1.5px solid var(--border);font-size:13px;font-family:inherit;background:#f8fafc">
+        <select onchange="leadFiltPerfil=this.value;filtrarLeadsLista()" style="width:100%;padding:8px 10px;border-radius:8px;border:1.5px solid var(--border);font-size:13px;font-family:inherit;background:#f8fafc">
           <option value="">Todos los perfiles</option>
           <option value="Particular"${leadFiltPerfil==='Particular'?' selected':''}>👤 Particulares</option>
           <option value="Profesional"${leadFiltPerfil==='Profesional'?' selected':''}>🏢 Profesionales</option>
         </select>
       </div>
       <div style="flex:1;min-width:140px">
-        <select onchange="leadFiltOperacion=this.value;renderProspeccion()" style="width:100%;padding:8px 10px;border-radius:8px;border:1.5px solid var(--border);font-size:13px;font-family:inherit;background:#f8fafc">
+        <select onchange="leadFiltOperacion=this.value;filtrarLeadsLista()" style="width:100%;padding:8px 10px;border-radius:8px;border:1.5px solid var(--border);font-size:13px;font-family:inherit;background:#f8fafc">
           <option value="">Venta y alquiler</option>
           <option value="Venta"${leadFiltOperacion==='Venta'?' selected':''}>💶 Venta</option>
           <option value="Alquiler"${leadFiltOperacion==='Alquiler'?' selected':''}>🔑 Alquiler</option>
@@ -3457,6 +3458,9 @@ function renderProspeccion() {
         </select>
       </div>
     </div>
+
+    <!-- Buscador por nombre/teléfono -->
+    <div id="leadBuscadorMount" style="margin-bottom:10px"></div>
 
     <!-- Barra acciones masivas -->
     <div id="barra-masiva" style="display:none;background:#0f4c5c;border-radius:10px;padding:12px 18px;margin-bottom:12px;align-items:center;gap:10px;flex-wrap:wrap">
@@ -3483,6 +3487,7 @@ function renderProspeccion() {
     </div>
 
     <!-- Lista de leads -->
+    <div id="leadsListaContainer">
     ${lista.length === 0 ? `
     <div style="text-align:center;padding:60px 20px;color:var(--muted)">
       <div style="font-size:40px;margin-bottom:12px">🔍</div>
@@ -3529,7 +3534,9 @@ function renderProspeccion() {
         </div>`;
       }).join('')}
     </div>`}
+    </div>
   </div>`;
+  setTimeout(mountLeadBuscador, 0);
 }
 
 // ── LEAD BULK ACTIONS ────────────────────────────────────────────────────────
@@ -3594,6 +3601,97 @@ function deseleccionarTodos() {
   _leadSeleccionados.clear();
   document.querySelectorAll('#leads-lista input[type=checkbox]').forEach(function(cb){ cb.checked = false; });
   actualizarBarraMasiva();
+}
+
+// ── LEAD SEARCH ───────────────────────────────────────────────────────────────
+var leadSearchText = '';
+
+function mountLeadBuscador() {
+  var mount = document.getElementById('leadBuscadorMount');
+  if (!mount) return;
+  // Si ya existe el input, solo refiltrar
+  if (document.getElementById('leadSearchInput')) { filtrarLeadsLista(); return; }
+  var wrap = document.createElement('div');
+  wrap.style.cssText = 'position:relative';
+  var icon = document.createElement('span');
+  icon.textContent = '🔍';
+  icon.style.cssText = 'position:absolute;left:12px;top:50%;transform:translateY(-50%);font-size:15px;pointer-events:none';
+  var inp = document.createElement('input');
+  inp.type = 'text';
+  inp.id = 'leadSearchInput';
+  inp.value = leadSearchText;
+  inp.placeholder = 'Buscar por nombre, teléfono, email, zona, ref...';
+  inp.style.cssText = 'width:100%;padding:10px 14px 10px 38px;border-radius:10px;border:1.5px solid #e2e8f0;font-size:13px;font-family:inherit;background:#f8fafc;box-sizing:border-box;outline:none;transition:border-color 0.15s';
+  inp.addEventListener('focus', function() { inp.style.borderColor = '#0f4c5c'; });
+  inp.addEventListener('blur', function() { inp.style.borderColor = '#e2e8f0'; });
+  inp.addEventListener('input', function() { leadSearchText = inp.value; filtrarLeadsLista(); });
+  inp.addEventListener('keydown', function(e) { if(e.key==='Escape'){ leadSearchText=''; inp.value=''; filtrarLeadsLista(); } });
+  wrap.appendChild(icon);
+  wrap.appendChild(inp);
+  mount.appendChild(wrap);
+}
+
+function filtrarLeadsLista() {
+  var leads = DB.leads || [];
+  var q = leadSearchText.toLowerCase();
+  var lista = leads.filter(function(l) {
+    if(leadFiltEstado && l.estado !== leadFiltEstado) return false;
+    if(leadFiltFuente && l.fuente !== leadFiltFuente) return false;
+    if(leadFiltTipo && l.tipoActivo !== leadFiltTipo) return false;
+    if(leadFiltPerfil === 'Particular' && l.perfil !== 'Particular') return false;
+    if(leadFiltPerfil === 'Profesional' && l.perfil !== 'Profesional') return false;
+    if(leadFiltOperacion && l.operacion !== leadFiltOperacion) return false;
+    if(q) {
+      var h = [l.nombre||'',l.telefono||'',l.email||'',l.ref||'',l.zona||'',l.direccion||'',l.obs||''].join(' ').toLowerCase();
+      if(!h.includes(q)) return false;
+    }
+    return true;
+  });
+  var container = document.getElementById('leadsListaContainer');
+  if(!container) { renderProspeccion(); return; }
+  if(!lista.length) {
+    container.innerHTML = '<div style="text-align:center;padding:60px 20px;color:#64748b"><div style="font-size:40px;margin-bottom:12px">🔍</div><div style="font-size:16px;font-weight:700;margin-bottom:6px">Sin resultados</div><div style="font-size:13px">No hay leads que coincidan con la búsqueda.</div></div>';
+    return;
+  }
+  var rows = lista.map(function(l) {
+    var realIdx = leads.indexOf(l);
+    var estColor = LEAD_EST_COLOR[l.estado] || '#94a3b8';
+    var hoy = new Date().toISOString().slice(0,10);
+    var vencido = l.proximoContacto && l.proximoContacto < hoy && l.estado !== 'Descartado' && l.estado !== 'Convertido a captación';
+    var perfColor = LEAD_PERF_COLOR[l.perfil] || '#94a3b8';
+    var enlaceHTML = l.enlace ? '<div style="margin-bottom:6px"><a href="'+escH(l.enlace)+'" target="_blank" rel="noopener" style="display:inline-flex;align-items:center;gap:5px;background:#f0f9fc;border:1px solid #bde0ed;border-radius:6px;padding:4px 12px;font-size:12px;font-weight:700;color:#0f4c5c;text-decoration:none">🔗 Ver anuncio</a></div>' : '';
+    var captarBtn = (l.estado !== 'Convertido a captación' && l.estado !== 'Descartado') ? '<button onclick="convertirACaptacion('+realIdx+')" style="padding:6px 12px;border-radius:7px;border:none;background:#10b981;color:#fff;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit">✅ Captar</button>' : '';
+    return '<div data-real-idx="'+realIdx+'" style="background:#fff;border-radius:12px;border:1px solid '+(vencido?'#fca5a5':estColor+'44')+';padding:14px 18px;display:grid;grid-template-columns:32px auto 1fr auto;gap:12px;align-items:center">'
+      +'<input type="checkbox" data-idx="'+realIdx+'" onchange="onLeadCheck(this)" style="width:18px;height:18px;cursor:pointer;accent-color:#0f4c5c">'
+      +'<div style="display:flex;flex-direction:column;align-items:center;gap:4px;min-width:80px">'
+      +'<span style="background:'+estColor+';color:#fff;font-size:10px;font-weight:700;padding:3px 8px;border-radius:20px;white-space:nowrap">'+escH(l.estado||'Sin revisar')+'</span>'
+      +'<span style="font-size:10px;color:#64748b;font-family:monospace">'+escH(l.ref||'')+'</span>'
+      +'</div>'
+      +'<div>'
+      +'<div style="font-size:14px;font-weight:700;color:#1e293b;margin-bottom:4px">'+escH(l.tipoActivo||'—')+' · '+escH(l.zona||'Sin zona')+'</div>'
+      +enlaceHTML
+      +'<div style="font-size:12px;color:#64748b;display:flex;gap:10px;flex-wrap:wrap">'
+      +'<span>📍 '+escH(l.fuente||'—')+'</span>'
+      +'<span>📋 '+escH(l.operacion||'—')+'</span>'
+      +(l.superficie?'<span>📐 '+escH(l.superficie)+' m²</span>':'')
+      +(l.precio?'<span>💶 '+escH(l.precio)+'</span>':'')
+      +(l.telefono?'<span>📞 <a href="tel:'+escH(l.telefono)+'" style="color:#0f4c5c">'+escH(l.telefono)+'</a></span>':'')
+      +(l.nombre?'<span>👤 '+escH(l.nombre)+'</span>':'')
+      +'<span style="color:'+perfColor+';font-weight:600">'+escH(l.perfil||'—')+'</span>'
+      +renderOrigenBadge(l.origen||'Laura')
+      +(l.fecha?'<span>📅 '+escH(l.fecha)+'</span>':'')
+      +renderFechaBadge(vencido, l.proximoContacto)
+      +'</div>'
+      +(l.obs?'<div style="font-size:12px;color:#64748b;margin-top:4px;font-style:italic">'+escH(l.obs)+'</div>':'')
+      +'</div>'
+      +'<div style="display:flex;flex-direction:column;gap:6px;align-items:flex-end">'
+      +'<button onclick="editarLead('+realIdx+')" style="padding:6px 12px;border-radius:7px;border:1.5px solid #e2e8f0;background:#f8fafc;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;color:#0f4c5c">✏️ Editar</button>'
+      +captarBtn
+      +'<button onclick="eliminarLead('+realIdx+')" style="padding:6px 12px;border-radius:7px;border:1.5px solid #fca5a5;background:#fff;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;color:#ef4444">🗑</button>'
+      +'</div>'
+      +'</div>';
+  }).join('');
+  container.innerHTML = '<div style="display:flex;flex-direction:column;gap:8px" id="leads-lista">'+rows+'</div>';
 }
 
 function getWeekLabel() {
