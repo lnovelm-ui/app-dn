@@ -312,6 +312,7 @@
     </div>
   </div>
   <div class="header-btns">
+    <button id="btn-back-global" class="btn-hdr" onclick="goBack()" style="background:rgba(255,255,255,0.15)" title="Volver atrás">← Volver</button>
     <button class="btn-hdr" onclick="exportJSON()" title="Guardar copia de seguridad en JSON">↓ Guardar copia</button>
     <button class="btn-hdr" onclick="document.getElementById('importFile').click()" title="Cargar copia de seguridad desde JSON">↑ Cargar copia</button>
     <button class="btn-hdr-icon" onclick="openSettings()" title="Municipios y Zonas">⚙️</button>
@@ -746,6 +747,53 @@ let formDirty = false;
 let pendingTab = null;
 let sortDesc = true; // true = ref descendente (más nueva primero), false = ascendente
 
+// ── NAVEGACIÓN HISTÓRICO (para botón ← Volver) ─────────────────────────────
+let _navHistory = [];
+
+function _pushNav(tab) {
+  // Guardar estado anterior sólo si es diferente al último
+  if(_navHistory.length === 0 || _navHistory[_navHistory.length-1] !== tab) {
+    _navHistory.push(tab);
+    if(_navHistory.length > 20) _navHistory.shift();
+  }
+  _updateBackBtn();
+}
+
+function _updateBackBtn() {
+  var btn = document.getElementById('btn-back-global');
+  if(!btn) return;
+  var esHome = (currentTab === '__home__' && !formOpen);
+  if(esHome) {
+    btn.style.display = 'none';
+  } else {
+    btn.style.display = '';
+    btn.style.removeProperty('display'); // limpia cualquier inline anterior
+    btn.style.cssText = 'background:rgba(255,255,255,0.22);border:1px solid rgba(255,255,255,0.4);font-weight:700';
+  }
+}
+
+function goBack() {
+  if(formOpen && formDirty) {
+    // Reutilizar el warnModal existente, pero con acción de volver
+    pendingTab = '__back__';
+    document.getElementById('warnModal').classList.remove('hidden');
+    return;
+  }
+  _doGoBack();
+}
+
+function _doGoBack() {
+  if(_navHistory.length > 1) {
+    _navHistory.pop(); // quita la actual
+    var prev = _navHistory[_navHistory.length - 1];
+    _navHistory.pop(); // la quitamos para que doSwitchTab la vuelva a añadir
+    doSwitchTab(prev);
+  } else {
+    _navHistory = [];
+    doSwitchTab('__home__');
+  }
+}
+
 function markDirty() { formDirty = true; }
 
 function switchTab(tab) {
@@ -767,18 +815,25 @@ function doSwitchTab(tab) {
   document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
   const tabId = 'tab-' + tab;
   document.getElementById(tabId)?.classList.add('active');
+  _pushNav(tab);
   render();
 }
 
 function confirmLeave() {
   document.getElementById('warnModal').classList.add('hidden');
-  if(pendingTab) doSwitchTab(pendingTab);
+  if(pendingTab === '__back__') {
+    pendingTab = null;
+    _doGoBack();
+  } else if(pendingTab) {
+    doSwitchTab(pendingTab);
+  }
 }
 
 function cancelLeave() {
   document.getElementById('warnModal').classList.add('hidden');
   pendingTab = null;
 }
+
 
 // ── PRICE FORMAT ─────────────────────────────────────────────────────────────
 function formatPriceInput(el) {
@@ -956,13 +1011,22 @@ function openGlobalView(estado) {
   var totalTxt = total + ' propiedad' + (total !== 1 ? 'es' : '');
   var searchBar = '';
   if(estado === 'Captación') {
-    searchBar = '<div style="margin-bottom:14px;display:flex;gap:10px;align-items:center">'
+    searchBar = '<div style="margin-bottom:14px;display:flex;gap:10px;align-items:center;flex-wrap:wrap">'
       + '<div style="position:relative;flex:1;max-width:420px">'
       + '<span style="position:absolute;left:12px;top:50%;transform:translateY(-50%);font-size:15px;pointer-events:none">&#128269;</span>'
       + '<input id="captacion-search" type="text" placeholder="Buscar por nombre o telefono..."'
       + ' oninput="filtrarCaptacion(this.value)"'
       + ' style="width:100%;padding:9px 12px 9px 38px;border-radius:9px;border:1.5px solid #e2e8f0;font-size:13px;font-family:inherit;background:#f8fafc;outline:none">'
       + '</div>'
+      + '<select id="captacion-orden" onchange="ordenarCaptacion(this.value)" style="padding:8px 12px;border-radius:9px;border:1.5px solid #e2e8f0;font-size:13px;font-family:inherit;background:#f8fafc;color:#1e293b;min-width:200px">'
+      + '<option value="reciente">🕐 Más reciente primero</option>'
+      + '<option value="antiguo">🕐 Más antiguo primero</option>'
+      + '<option value="modificado">✏️ Último modificado</option>'
+      + '<option value="precio_desc">💶 Precio mayor primero</option>'
+      + '<option value="precio_asc">💶 Precio menor primero</option>'
+      + '<option value="zona">📍 Zona A→Z</option>'
+      + '<option value="prioridad">🎯 Prioridad captación</option>'
+      + '</select>'
       + '<div id="captacion-count" style="font-size:12px;color:#94a3b8">' + totalTxt + '</div>'
       + '</div>';
   }
@@ -985,25 +1049,24 @@ function openGlobalView(estado) {
         ${estado === 'Captación'
           ? '<button onclick="exportXLSXPorEstado(\'Captación\')" style="padding:8px 14px;border-radius:8px;border:1.5px solid #bbf7d0;background:#f0fdf4;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;color:#166534">📥 Excel Captaciones</button>'
           : estado === 'Publicado'
-            ? '<button onclick="exportXLSXPorEstado(\'Publicado\')" style="padding:8px 14px;border-radius:8px;border:1.5px solid #bbf7d0;background:#f0fdf4;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;color:#166534">📥 Excel Publicados</button>'
+            ? '<button onclick="exportXLSXPorEstado(\'Publicado\')" style="padding:8px 14px;border-radius:8px;border:1.5px solid #bbf7d0;background:#f0fdf4;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;color:#166534">📥 Excel Publicados</button><button onclick="abrirFormPublicadoManual()" style="padding:8px 14px;border-radius:8px;border:none;background:#10b981;color:#fff;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit">+ Añadir publicado</button>'
             : estado === 'Firmado'
               ? '<button onclick="exportXLSXPorEstado(\'Firmado\')" style="padding:8px 14px;border-radius:8px;border:1.5px solid #bbf7d0;background:#f0fdf4;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;color:#166534">📥 Excel Firmados</button>'
               : '<button onclick="exportXLSXTodosActivos()" style="padding:8px 14px;border-radius:8px;border:1.5px solid #bbf7d0;background:#f0fdf4;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;color:#166534">📥 Excel Todos</button>'
         }
-        <button onclick="switchTab('locales')" style="padding:8px 14px;border-radius:8px;border:none;background:#059669;color:#fff;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit">+ Nuevo Local</button>
-        <button onclick="switchTab('naves')" style="padding:8px 14px;border-radius:8px;border:none;background:#0f4c5c;color:#fff;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit">+ Nueva Nave</button>
-        <button onclick="switchTab('oficinas')" style="padding:8px 14px;border-radius:8px;border:none;background:#0284c7;color:#fff;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit">+ Nueva Oficina</button>
       </div>
     </div>
     ${searchBar}
     <div id="captacion-cards">${cardsHTML}</div>`;
   currentTab = '__global__';
+  _pushNav('__global__');
 }
 
 function filtrarCaptacion(q) {
   var s = (q||'').toLowerCase().trim();
+  var ordenSel = (document.getElementById('captacion-orden') || {}).value || 'reciente';
   var TIPOS = ['naves','oficinas','locales','pisos','chalets'];
-  var allCards = [], total = 0;
+  var allItems = [], total = 0;
   TIPOS.forEach(function(t) {
     var list = DB[t]||[];
     list.forEach(function(a,i) {
@@ -1015,14 +1078,47 @@ function filtrarCaptacion(q) {
         || (a.direccion||'').toLowerCase().includes(s)
         || (a.zona||'').toLowerCase().includes(s)
         || (a.ref||'').toLowerCase().includes(s);
-      if(match) { allCards.push(assetCardHTML(a,t,i)); total++; }
+      if(match) { allItems.push({a:a,t:t,i:i}); total++; }
     });
   });
-  var cards = allCards.join('') || '<div class="empty-state">Sin resultados</div>';
+  // Aplicar orden
+  allItems = _sortCaptacionItems(allItems, ordenSel);
+  var cards = allItems.map(function(it){ return assetCardHTML(it.a,it.t,it.i); }).join('') || '<div class="empty-state">Sin resultados</div>';
   var cardsEl = document.getElementById('captacion-cards');
   var countEl = document.getElementById('captacion-count');
   if(cardsEl) cardsEl.innerHTML = cards;
   if(countEl) countEl.textContent = total + ' propiedad' + (total!==1?'es':'');
+}
+
+function _sortCaptacionItems(items, orden) {
+  var _po = {'Trabajar ahora':0,'En seguimiento':1,'Aparcar':2};
+  return items.slice().sort(function(a, b) {
+    var aa = a.a, bb = b.a;
+    if(orden === 'reciente') return (bb.fechaCaptacion||bb.ref||'') > (aa.fechaCaptacion||aa.ref||'') ? 1 : -1;
+    if(orden === 'antiguo')  return (aa.fechaCaptacion||aa.ref||'') > (bb.fechaCaptacion||bb.ref||'') ? 1 : -1;
+    if(orden === 'modificado') return (bb.updatedAt||bb.fechaCaptacion||'') > (aa.updatedAt||aa.fechaCaptacion||'') ? 1 : -1;
+    if(orden === 'precio_desc') {
+      var pa = parseFloat(aa.precioVenta||aa.precioAlquiler||0)||0;
+      var pb = parseFloat(bb.precioVenta||bb.precioAlquiler||0)||0;
+      return pb - pa;
+    }
+    if(orden === 'precio_asc') {
+      var pa2 = parseFloat(aa.precioVenta||aa.precioAlquiler||0)||0;
+      var pb2 = parseFloat(bb.precioVenta||bb.precioAlquiler||0)||0;
+      return pa2 - pb2;
+    }
+    if(orden === 'zona') return (aa.zona||aa.municipio||'').localeCompare(bb.zona||bb.municipio||'');
+    if(orden === 'prioridad') {
+      var va = _po[aa.prioridad] !== undefined ? _po[aa.prioridad] : 3;
+      var vb = _po[bb.prioridad] !== undefined ? _po[bb.prioridad] : 3;
+      return va - vb;
+    }
+    return 0;
+  });
+}
+
+function ordenarCaptacion(orden) {
+  filtrarCaptacion((document.getElementById('captacion-search')||{}).value||'');
 }
 
 // ── MUNICIPIO / ZONA ─────────────────────────────────────────────────────────
@@ -2285,7 +2381,7 @@ function renderClientes() {
       <div class="toolbar-right">
         <button class="btn-sec" onclick="exportCSV(DB.clientes,'clientes.csv')">↓ CSV</button>
         <button class="btn-sec" style="background:#f0fdf4;color:#166534;border-color:#bbf7d0" onclick="exportXLSXClientes()">📥 Excel</button>
-        <button class="btn-sm btn-red" style="padding:6px 12px;font-size:12px" onclick="deleteAllClientes()">🗑 Eliminar todos</button>
+
         <button class="btn-pri" onclick="toggleForm()">+ Nuevo Cliente</button>
       </div>
     </div>
@@ -2349,7 +2445,18 @@ function onCliSearch2(val) {
 
 // ── ACTIONS ───────────────────────────────────────────────────────────────────
 function toggleForm() { formOpen=!formOpen; editIdx=null; editId=null; formDirty=false; render(); }
-function cancelForm() { formOpen=false; editIdx=null; editId=null; formDirty=false; render(); }
+function cancelForm() {
+  formOpen=false; editIdx=null; editId=null; formDirty=false;
+  if(_tabBeforeEdit && _tabBeforeEdit !== currentTab) {
+    var origen = _tabBeforeEdit;
+    _tabBeforeEdit = null;
+    if(origen === '__global__') openGlobalView(null);
+    else doSwitchTab(origen);
+  } else {
+    _tabBeforeEdit = null;
+    render();
+  }
+}
 function onSearch(v) { searchVal=v; render(); }
 
 function toggleEstado(estado, tipo) {
@@ -2372,14 +2479,15 @@ function onFiltMun(v, tipo) { filtMun=v; if(tipo) onAssetFilter(tipo); else rend
 function onFiltEst(v, tipo) { if(tipo) onAssetFilter(tipo); else render(); }
 function onFiltTipo(v, tipo) { filtTipo=v; if(tipo) onAssetFilter(tipo); else render(); }
 
+let _tabBeforeEdit = null; // tab de origen antes de abrir un formulario de edición
+
 function openEdit(idx, tipo) {
+  _tabBeforeEdit = currentTab; // guardar origen (puede ser __global__, prospeccion, etc.)
   editIdx=idx; formOpen=true;
-  // Si estamos en vista global, cambiar a la pestaña del tipo correcto
-  if(currentTab==='__global__' || currentTab!==tipo) {
-    currentTab = tipo;
-    document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
-    document.getElementById('tab-'+tipo)?.classList.add('active');
-  }
+  // Cambiar al tab del tipo para poder renderizar el formulario
+  currentTab = tipo;
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('tab-'+tipo)?.classList.add('active');
   render(); window.scrollTo(0,0);
 }
 function openCruce(idx, tipo) {
@@ -2472,7 +2580,23 @@ function submitAsset(tipo) {
     rec.ref = rec.estadoComercial === 'Captación' ? genRefCap() : genRef(tipo);
     DB[tipo].push(rec);
   }
-  saveDB(); formOpen=false; editIdx=null; formDirty=false; render();
+  saveDB();
+  formOpen=false; editIdx=null; formDirty=false;
+  // Volver a la vista de origen si venimos de una vista global o diferente
+  if(_tabBeforeEdit && _tabBeforeEdit !== currentTab) {
+    var origen = _tabBeforeEdit;
+    _tabBeforeEdit = null;
+    if(origen === '__global__') {
+      // Determinar qué vista global mostrar según el estado comercial del activo guardado
+      var estadoGuardado = rec.estadoComercial || 'Captación';
+      openGlobalView(estadoGuardado);
+    } else {
+      doSwitchTab(origen);
+    }
+  } else {
+    _tabBeforeEdit = null;
+    render();
+  }
 }
 
 function submitPropietario() {
@@ -2513,6 +2637,43 @@ function exportJSON() {
 }
 function openHelp() { document.getElementById('helpModal').classList.remove('hidden'); }
 function closeHelp(e) { if(!e||e.target===document.getElementById('helpModal')) document.getElementById('helpModal').classList.add('hidden'); }
+
+// ── AÑADIR PUBLICADO MANUALMENTE ──────────────────────────────────────────────
+function abrirFormPublicadoManual() {
+  // Navega a la pestaña naves con formulario abierto con estado Publicado por defecto
+  // El usuario elige el tipo dentro del formulario igual que siempre
+  // Mostramos un selector de tipo primero
+  const tipos = [{v:'naves',l:'🏭 Nave'},{v:'oficinas',l:'🏢 Oficina'},{v:'locales',l:'🏪 Local'},{v:'pisos',l:'🏠 Piso'},{v:'chalets',l:'🏡 Casa'}];
+  const overlay = document.createElement('div');
+  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.55);z-index:2000;display:flex;align-items:center;justify-content:center';
+  const box = document.createElement('div');
+  box.style.cssText = 'background:#fff;border-radius:14px;padding:28px 32px;box-shadow:0 20px 60px rgba(0,0,0,0.25);min-width:320px';
+  box.innerHTML = '<div style="font-size:15px;font-weight:800;color:#0f4c5c;margin-bottom:16px">¿Qué tipo de activo publicado quieres añadir?</div>'
+    + tipos.map(t => '<button onclick="document.body.removeChild(document.getElementById(\'__pubManOverlay__\'));editIdx=null;formOpen=true;activeStates=new Set([\'Publicado\']);doSwitchTabConEstado(\''+t.v+'\',\'Publicado\')" style="display:block;width:100%;text-align:left;padding:10px 14px;border-radius:8px;border:1px solid #e2e8f0;background:#f8fafc;font-size:14px;font-weight:600;cursor:pointer;font-family:inherit;margin-bottom:8px;color:#1e293b">'+t.l+'</button>').join('')
+    + '<button onclick="document.body.removeChild(document.getElementById(\'__pubManOverlay__\'))" style="margin-top:4px;width:100%;padding:8px;border-radius:8px;border:1.5px solid #e2e8f0;background:#fff;font-size:13px;cursor:pointer;font-family:inherit;color:#64748b">Cancelar</button>';
+  overlay.id = '__pubManOverlay__';
+  overlay.appendChild(box);
+  document.body.appendChild(overlay);
+}
+
+function doSwitchTabConEstado(tab, estadoInicial) {
+  currentTab = tab;
+  formOpen = true;
+  editIdx = null; editId = null;
+  formDirty = false; pendingTab = null;
+  searchVal = ''; filtMun = ''; filtTipo = ''; filtProv = '';
+  activeStates = new Set([estadoInicial || 'Publicado']);
+  leadSearchText = '';
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('tab-' + tab)?.classList.add('active');
+  render();
+  // Pre-seleccionar estado Publicado en el formulario tras render
+  setTimeout(function() {
+    var sel = document.getElementById('f_estadoComercial');
+    if(sel && estadoInicial) sel.value = estadoInicial;
+  }, 100);
+}
+
 
 async function resetDatos() {
   const msg = '⚠️ ATENCIÓN — Acción irreversible\n\n'
@@ -3424,13 +3585,14 @@ function toggleEstadoBar(estado) {
 function render() {
   renderDashboard();
   renderEstadoBar();
-  if(currentTab==='__global__') return;
-  if(currentTab==='__home__') { renderHome(); return; }
+  if(currentTab==='__global__') { _updateBackBtn(); return; }
+  if(currentTab==='__home__') { renderHome(); _updateBackBtn(); return; }
   if(ASSET_TABS.includes(currentTab)) renderAssetTab(currentTab);
   else if(currentTab==='propietarios') renderPropietarios();
   else if(currentTab==='clientes') renderClientes();
   else if(currentTab==='resultados') renderResultados();
   else if(currentTab==='prospeccion') renderProspeccion();
+  _updateBackBtn();
 }
 
 // ── MIGRACIÓN ESTADO PROPIEDADES PUBLICADAS EN IDEALISTA ─────────────────────
@@ -3575,6 +3737,8 @@ async function iniciarApp() {
   await loadDB();
   migracionPublicadasFn();
   migracionLeadsFn();
+  _navHistory = ['__home__'];
+  _updateBackBtn();
   render();
 }
 
