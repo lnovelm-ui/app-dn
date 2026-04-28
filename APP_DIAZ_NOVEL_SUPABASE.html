@@ -994,21 +994,48 @@ function openGlobalView(estado) {
   const bar = document.getElementById('estadobar');
   if(bar) bar.style.display='none';
 
-  let allCards = [], total = 0;
+  let allItems = [], total = 0;
   TIPOS.forEach(t => {
     const list = DB[t]||[];
     list.forEach((a,i) => {
       if(estado && a.estadoComercial !== estado) return;
-      allCards.push({card: assetCardHTML(a,t,i), isArchivado: a.estadoComercial==='Archivado'});
+      allItems.push({card: assetCardHTML(a,t,i), isArchivadoGeneral: a.estadoComercial==='Archivado', isCaptacionArchivada: a.captacionArchivada===true});
       total++;
     });
   });
-  const activos   = allCards.filter(c=>!c.isArchivado).map(c=>c.card);
-  const archivados = allCards.filter(c=>c.isArchivado).map(c=>c.card);
-  const cardsHTML = [...activos,...archivados].join('') || '<div class="empty-state">No hay propiedades en este estado</div>';
+
+  let cardsHTML;
+  if(estado === 'Captación') {
+    const activos    = allItems.filter(c => !c.isCaptacionArchivada).map(c=>c.card);
+    const archivados = allItems.filter(c =>  c.isCaptacionArchivada).map(c=>c.card);
+    const activosHTML = activos.join('') || '<div class="empty-state">No hay captaciones activas</div>';
+    const archivadosHTML = archivados.length > 0
+      ? `<div style="margin-top:28px">
+           <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;cursor:pointer" onclick="toggleCaptacionArchivados(this)">
+             <div style="flex:1;height:1px;background:#e2e8f0"></div>
+             <span id="btn-toggle-arch" style="font-size:12px;font-weight:700;color:#94a3b8;white-space:nowrap;padding:4px 12px;border:1px solid #e2e8f0;border-radius:20px;background:#f8fafc">
+               📦 Archivados de captación (${archivados.length}) ▼
+             </span>
+             <div style="flex:1;height:1px;background:#e2e8f0"></div>
+           </div>
+           <div id="captacion-archivados-list" style="display:none;opacity:0.7">
+             ${archivados.join('')}
+           </div>
+         </div>`
+      : '';
+    cardsHTML = activosHTML + archivadosHTML;
+  } else {
+    const activos    = allItems.filter(c=>!c.isArchivadoGeneral).map(c=>c.card);
+    const archivados = allItems.filter(c=> c.isArchivadoGeneral).map(c=>c.card);
+    cardsHTML = [...activos,...archivados].join('') || '<div class="empty-state">No hay propiedades en este estado</div>';
+  }
   const titulo = estado ? `Vista global · ${estado}` : 'Vista global · Todas las propiedades';
 
-  var totalTxt = total + ' propiedad' + (total !== 1 ? 'es' : '');
+  var totalActivos = estado === 'Captación' ? allItems.filter(c=>!c.isCaptacionArchivada).length : total;
+  var totalArchivadosCap = estado === 'Captación' ? allItems.filter(c=>c.isCaptacionArchivada).length : 0;
+  var totalTxt = estado === 'Captación'
+    ? totalActivos + ' activ' + (totalActivos!==1?'as':'a') + (totalArchivadosCap>0 ? ' · '+totalArchivadosCap+' archivad'+(totalArchivadosCap!==1?'as':'a') : '')
+    : total + ' propiedad' + (total !== 1 ? 'es' : '');
   var searchBar = '';
   if(estado === 'Captación') {
     searchBar = '<div style="margin-bottom:14px;display:flex;gap:10px;align-items:center;flex-wrap:wrap">'
@@ -1789,16 +1816,18 @@ function assetCardHTML(a, tipo, realIdx) {
             var waIcon = tel2 ? '💬 WhatsApp' : '💬 Sin tel.';
             var btnWA = '<button onclick="abrirWhatsAppCaptacion(\''+escH(a.ref)+'\',\''+tipo+'\','+realIdx+')" style="padding:6px 11px;border-radius:7px;border:none;background:#25d366;color:#fff;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit;display:flex;align-items:center;gap:4px">'+waIcon+'</button>';
             var btnContacto = '<button onclick="registrarContactoCaptacion(\''+escH(a.ref)+'\',\''+tipo+'\','+realIdx+')" style="padding:6px 11px;border-radius:7px;border:1px solid #bde0ed;background:#f0f9fc;color:#0f4c5c;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit">📞 Registrar contacto</button>';
-            var btnCaptado = ec!=='Descartado'?'<button onclick="pasarAActivoPublicado(\''+escH(a.ref)+'\',\''+tipo+'\','+realIdx+')" style="padding:6px 11px;border-radius:7px;border:none;background:#10b981;color:#fff;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit">✅ Captado</button>':'';
-            var btnDescartar = ec!=='Descartado'&&ec!=='Captado'?'<button onclick="descartarCaptacion(\''+escH(a.ref)+'\',\''+tipo+'\','+realIdx+')" style="padding:6px 11px;border-radius:7px;border:1px solid #fca5a5;background:#fff;color:#ef4444;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit">🚫 Descartar</button>':'';
             var btnVolver = '<button onclick="volverAProspeccion(\''+escH(a.ref)+'\',\''+tipo+'\','+realIdx+')" style="padding:6px 11px;border-radius:7px;border:1px solid #c2410c;background:#fff7ed;color:#c2410c;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit">↩ Volver a Prospección</button>';
+            var estaArchivado = a.captacionArchivada === true;
+            var btnArchivar = estaArchivado
+              ? '<button onclick="desarchivarCaptacion(\''+escH(a.ref)+'\',\''+tipo+'\','+realIdx+')" style="padding:6px 11px;border-radius:7px;border:1px solid #6366f1;background:#eef2ff;color:#4338ca;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit">↩ Desarchivar</button>'
+              : '<button onclick="archivarCaptacion(\''+escH(a.ref)+'\',\''+tipo+'\','+realIdx+')" style="padding:6px 11px;border-radius:7px;border:1px solid #94a3b8;background:#f8fafc;color:#64748b;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit">📦 Archivar</button>';
             return '<div style="margin-top:10px;border-top:1px dashed #e2e8f0;padding-top:10px">'
               + '<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;flex-wrap:wrap">'
               + '<span style="font-size:11px;font-weight:700;background:'+ecColor+'22;color:'+ecColor+';border:1px solid '+ecColor+'44;border-radius:20px;padding:3px 10px">'+ecIcon+' '+escH(ec)+'</span>'
               + '</div>'
               + histHTML
               + '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px">'
-              + btnWA + btnContacto + btnCaptado + btnDescartar + btnVolver
+              + btnWA + btnContacto + btnVolver + btnArchivar
               + '</div>'
               + '</div>';
           })()}
@@ -1878,6 +1907,42 @@ function abrirWhatsAppCaptacion(ref, tipo, realIdx) {
       prompt('Sin teléfono registrado. Copia el mensaje:', msg);
     }
   }
+}
+
+function archivarCaptacion(ref, tipo, realIdx) {
+  var motivo = prompt('Motivo del archivo (ej: no quiere agencia, precio no viable, sin respuesta...):', '');
+  if(motivo === null) return;
+  var a = DB[tipo][realIdx];
+  if(!a) return;
+  a.captacionArchivada = true;
+  a.captacionArchivaMotivo = motivo || 'Sin motivo indicado';
+  a.captacionArchivaFecha = new Date().toISOString().slice(0,10);
+  if(!a.contactosCaptacion) a.contactosCaptacion = [];
+  a.contactosCaptacion.push({ fecha: new Date().toISOString().slice(0,10), canal: 'Gestión', nota: 'ARCHIVADO: ' + (motivo||'Sin motivo indicado') });
+  DB[tipo][realIdx] = a;
+  saveDB();
+  openGlobalView('Captación');
+}
+
+function desarchivarCaptacion(ref, tipo, realIdx) {
+  var a = DB[tipo][realIdx];
+  if(!a) return;
+  a.captacionArchivada = false;
+  a.captacionArchivaMotivo = '';
+  if(!a.contactosCaptacion) a.contactosCaptacion = [];
+  a.contactosCaptacion.push({ fecha: new Date().toISOString().slice(0,10), canal: 'Gestión', nota: 'DESARCHIVADO — vuelto a captación activa.' });
+  DB[tipo][realIdx] = a;
+  saveDB();
+  openGlobalView('Captación');
+}
+
+function toggleCaptacionArchivados(headerEl) {
+  var lista = document.getElementById('captacion-archivados-list');
+  var btn   = document.getElementById('btn-toggle-arch');
+  if(!lista) return;
+  var visible = lista.style.display !== 'none';
+  lista.style.display = visible ? 'none' : 'block';
+  if(btn) btn.innerHTML = btn.innerHTML.replace(visible ? '▲' : '▼', visible ? '▼' : '▲');
 }
 
 function descartarCaptacion(ref, tipo, realIdx) {
