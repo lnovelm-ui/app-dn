@@ -2359,12 +2359,19 @@ function propCardHTML(p) {
 function onPropSearch2(val) {
   searchVal = val;
   const s = val.toLowerCase();
-  const filtered = DB.propietarios.filter(p=>
-    !s||p.nombre?.toLowerCase().includes(s)||
-    p.tel1?.includes(s)||p.tel2?.includes(s)||p.tel3?.includes(s)||
-    p.empresa?.toLowerCase().includes(s)
-  );
-  const refColors = {naves:'#0f4c5c',oficinas:'#0284c7',locales:'#059669',pisos:'#7c3aed',chalets:'#b45309'};
+  const TIPOS = ['naves','oficinas','locales','pisos','chalets'];
+  const filtered = DB.propietarios.filter(p => {
+    if(!s) return true;
+    if(p.nombre?.toLowerCase().includes(s)) return true;
+    if(p.tel1?.includes(s)) return true;
+    if(p.tel2?.includes(s)) return true;
+    if(p.tel3?.includes(s)) return true;
+    if(p.empresa?.toLowerCase().includes(s)) return true;
+    // Buscar por referencia actual o anterior de activos vinculados
+    const activos = TIPOS.flatMap(t=>(DB[t]||[]).filter(a=>a.propietarioId===p.id));
+    if(activos.some(a => (a.ref||'').toLowerCase().includes(s) || (a.refAnterior||'').toLowerCase().includes(s))) return true;
+    return false;
+  });
   const cardsEl = document.getElementById('prop-cards');
   const countEl = document.getElementById('prop-count');
   if(cardsEl) cardsEl.innerHTML = filtered.length
