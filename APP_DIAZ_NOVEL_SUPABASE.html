@@ -2256,10 +2256,20 @@ function onFiltProv(v, tipo) { filtProv=v; if(tipo) { const list=DB[tipo]||[]; c
 // ── PROPIETARIOS ─────────────────────────────────────────────────────────────
 function renderPropietarios() {
   const list = DB.propietarios;
-  const filtered = list.filter(p=>
-    !searchVal||p.nombre?.toLowerCase().includes(searchVal.toLowerCase())||
-    p.tel1?.includes(searchVal)||p.tel2?.includes(searchVal)||p.empresa?.toLowerCase().includes(searchVal.toLowerCase())
-  );
+  const TIPOS = ['naves','oficinas','locales','pisos','chalets'];
+  const filtered = list.filter(p => {
+    if(!searchVal) return true;
+    const q = searchVal.toLowerCase();
+    // Búsqueda por nombre, empresa, teléfonos
+    if(p.nombre?.toLowerCase().includes(q)) return true;
+    if(p.tel1?.includes(searchVal)) return true;
+    if(p.tel2?.includes(searchVal)) return true;
+    if(p.empresa?.toLowerCase().includes(q)) return true;
+    // Búsqueda por referencia actual o anterior de activos vinculados
+    const refs = TIPOS.flatMap(t=>(DB[t]||[]).filter(a=>a.propietarioId===p.id));
+    if(refs.some(a => (a.ref||'').toLowerCase().includes(q) || (a.refAnterior||'').toLowerCase().includes(q))) return true;
+    return false;
+  });
 
   let formHTML = '';
   if(formOpen) {
@@ -2296,7 +2306,7 @@ function renderPropietarios() {
     </div>
     <div class="toolbar">
       <div class="toolbar-left">
-        <input class="inp-sm inp-search" id="prop-search-input" placeholder="🔍 Teléfono o nombre..." value="${escH(searchVal)}" oninput="onPropSearch2(this.value)">
+        <input class="inp-sm inp-search" id="prop-search-input" placeholder="🔍 Nombre, teléfono o referencia..." value="${escH(searchVal)}" oninput="onPropSearch2(this.value)">
       </div>
       <div class="toolbar-right">
         <button class="btn-sec" onclick="exportCSV(DB.propietarios,'propietarios.csv')">↓ CSV</button>
